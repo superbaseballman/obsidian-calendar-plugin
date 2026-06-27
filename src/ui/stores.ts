@@ -55,15 +55,20 @@ function createWeeklyNotesStore() {
 }
 
 function createMonthlyNotesStore() {
+  let hasError = false;
   const store = writable<Record<string, TFile>>(null);
   return {
     reindex: () => {
       try {
         const monthlyNotes = getAllMonthlyNotes();
         store.set(monthlyNotes);
+        hasError = false;
       } catch (err) {
-        console.log("[Calendar] Failed to find monthly notes folder", err);
+        if (!hasError) {
+          console.log("[Calendar] Failed to find monthly notes folder", err);
+        }
         store.set({});
+        hasError = true;
       }
     },
     ...store,

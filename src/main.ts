@@ -103,13 +103,10 @@ export default class CalendarPlugin extends Plugin {
   async loadOptions(): Promise<void> {
     const options = await this.loadData();
     settings.update((old) => {
-      return {
-        ...old,
-        ...(options || {}),
-      };
+      const merged = { ...old, ...(options || {}) };
+      this.options = merged;
+      return merged;
     });
-
-    await this.saveData(this.options);
   }
 
   async writeOptions(

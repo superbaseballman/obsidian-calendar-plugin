@@ -53,9 +53,8 @@ export const defaultSettings = Object.freeze({
 });
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const periodicNotes = (<any>window.app).plugins.getPlugin("periodic-notes");
-  return periodicNotes && periodicNotes.settings?.weekly?.enabled;
+  const periodicNotes = (window.app as { plugins: { getPlugin: (id: string) => { settings?: { weekly?: { enabled?: boolean } } } | null } }).plugins.getPlugin("periodic-notes");
+  return periodicNotes?.settings?.weekly?.enabled ?? false;
 }
 
 export class CalendarSettingsTab extends PluginSettingTab {

@@ -13,7 +13,6 @@
 
   import type { ISettings } from "src/settings";
   import {
-    parseMonthlyNoteTasks,
     parseMonthlyNoteSections,
     getMonthlyNote,
     tryToCreateMonthlyNote,
@@ -41,7 +40,6 @@
   export let onContextMenuWeek: (date: Moment, event: MouseEvent) => boolean;
 
   // --- Monthly tasks state ---
-  let monthTasks: Record<string, string[]> = {};
   let monthFile: TFile | null = null;
   let lastLoadedMonth: string = "";
   let currentSettings: ISettings;
@@ -77,15 +75,12 @@
     if (monthFile) {
       try {
         const content = await window.app.vault.cachedRead(monthFile);
-        monthTasks = parseMonthlyNoteTasks(content);
         dayContents = parseMonthlyNoteSections(content);
       } catch (err) {
         console.log("[Calendar] Failed to read monthly note", err);
-        monthTasks = {};
         dayContents = {};
       }
     } else {
-      monthTasks = {};
       dayContents = {};
     }
   }
@@ -99,7 +94,6 @@
     const modal = new DateActionModal(window.app, date, {
       onOpenDailyNote: (d: Moment) => {
         onClickDay(d, false);
-        closePopup();
       },
       onAddItem: (d: Moment) => {
         openMonthlyNoteForEdit(d);
@@ -158,12 +152,6 @@
         editor.setCursor({ line: targetLine + 1, ch: 0 });
       }
     }
-    
-    closePopup();
-  }
-
-  function closePopup() {
-    // Placeholder for future use
   }
 
   function startEditDay(day: string) {
@@ -184,9 +172,6 @@
       // Update local state immediately
       dayContents[day] = newContent;
       dayContents = { ...dayContents };
-      // Re-parse tasks in case they changed
-      const fileContent = await window.app.vault.cachedRead(monthFile);
-      monthTasks = parseMonthlyNoteTasks(fileContent);
       editingDay = null;
       editText = "";
     } catch (err) {
@@ -200,6 +185,41 @@
     }
   }
 
+  function resolveImagePaths(node: HTMLElement) {
+    if (!monthFile) return;
+    const images = node.querySelectorAll("img");
+    const folder = monthFile.parent?.path || "";
+    images.forEach((img) => {
+      const src = img.getAttribute("src");
+      if (!src || src.startsWith("app://") || src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:")) {
+        return; // skip already resolved or external URLs
+      }
+      // Resolve relative path to absolute vault path
+      let absPath = src;
+      if (!src.startsWith("/")) {
+        // Relative path — resolve against the monthly note's folder
+        const parts = folder.split("/").filter(Boolean);
+        const srcParts = src.split("/");
+        for (const part of srcParts) {
+          if (part === "..") {
+            parts.pop();
+          } else if (part !== ".") {
+            parts.push(part);
+          }
+        }
+        absPath = parts.join("/");
+      } else {
+        absPath = src.slice(1); // remove leading /
+      }
+      // Use Obsidian vault to get the resource URL
+      const file = window.app.vault.getAbstractFileByPath(absPath);
+      if (file) {
+        const resourcePath = window.app.vault.getResourcePath(file);
+        img.setAttribute("src", resourcePath);
+      }
+    });
+  }
+
   function renderMarkdown(node: HTMLElement, content: string) {
     if (!content || !monthFile) {
       node.empty();
@@ -209,7 +229,10 @@
     // Unload and reload component to clean up previous embedded content handlers
     markdownComponent.unload();
     markdownComponent.load();
-    MarkdownRenderer.renderMarkdown(content, node, monthFile.path, markdownComponent);
+    // renderMarkdown is async — resolve image paths after it completes
+    MarkdownRenderer.renderMarkdown(content, node, monthFile.path, markdownComponent).then(() => {
+      resolveImagePaths(node);
+    });
 
     return {
       update(newContent: string) {
@@ -220,7 +243,9 @@
         node.empty();
         markdownComponent.unload();
         markdownComponent.load();
-        MarkdownRenderer.renderMarkdown(newContent, node, monthFile.path, markdownComponent);
+        MarkdownRenderer.renderMarkdown(newContent, node, monthFile.path, markdownComponent).then(() => {
+          resolveImagePaths(node);
+        });
       },
     };
   }
@@ -263,7 +288,7 @@
   });
 </script>
 
-<div class="calendar-wrapper" on:click|self={closePopup}>
+<div class="calendar-wrapper">
   <CalendarBase
     {sources}
     {today}
@@ -286,17 +311,17 @@
         {#each daysWithTasks as day}
           {#if dayContents[day] || editingDay === day}
             <div class="mt-day-block">
-              <div class="mt-day-label">{day}日</div>
+              <div class="mt-day-label">Day {day}</div>
               {#if editingDay === day}
                 <div class="mt-edit-area">
                   <textarea
                     class="mt-edit-textarea"
                     bind:value={editText}
-                    placeholder="输入 Markdown 内容..."
+                    placeholder="Enter Markdown content..."
                   ></textarea>
                   <div class="mt-edit-actions">
-                    <button class="mt-edit-save" on:click={() => saveEditDay(day)}>保存</button>
-                    <button class="mt-edit-cancel" on:click={cancelEdit}>取消</button>
+                    <button class="mt-edit-save" on:click={() => saveEditDay(day)}>Save</button>
+                    <button class="mt-edit-cancel" on:click={cancelEdit}>Cancel</button>
                   </div>
                 </div>
               {:else}
@@ -304,7 +329,7 @@
                   class="mt-markdown-content"
                   use:renderMarkdown={dayContents[day]}
                   on:dblclick={() => startEditDay(day)}
-                  title="双击编辑内容"
+                  title="Double-click to edit"
                 ></div>
               {/if}
             </div>
@@ -313,8 +338,8 @@
       </div>
     {:else if !monthFile}
       <div class="mt-empty">
-        <span>暂无月记</span>
-        <button class="mt-create-btn" on:click={createMonthlyNote}>创建 {monthLabel} 月记</button>
+        <span>No monthly note</span>
+        <button class="mt-create-btn" on:click={createMonthlyNote}>Create {monthLabel}</button>
       </div>
     {/if}
   {/if}
@@ -325,136 +350,6 @@
     position: relative;
     display: flex;
     flex-direction: column;
-  }
-
-  /* Choice popup */
-  .mt-choice-popup {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 10px;
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    margin-top: 6px;
-  }
-
-  .mt-choice-header {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-accent);
-    margin-right: 4px;
-  }
-
-  .mt-choice-btn {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: var(--background-primary);
-    color: var(--text-normal);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .mt-choice-btn:hover {
-    background: var(--background-modifier-hover);
-    border-color: var(--interactive-accent);
-  }
-
-  .mt-choice-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 0 4px;
-    line-height: 1;
-  }
-
-  .mt-choice-close:hover {
-    color: var(--text-error);
-  }
-
-  /* Task summary */
-  .mt-summary {
-    padding: 8px 10px;
-    margin-top: 6px;
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-
-  .mt-summary-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-normal);
-    margin-bottom: 6px;
-  }
-
-  .mt-day-row {
-    display: flex;
-    gap: 8px;
-    padding: 3px 0;
-    border-bottom: 1px solid var(--background-modifier-border);
-  }
-
-  .mt-day-row:last-child {
-    border-bottom: none;
-  }
-
-  .mt-day-num {
-    min-width: 28px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-accent);
-    text-align: center;
-    padding-top: 1px;
-  }
-
-  .mt-day-tasks {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .mt-task {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 12px;
-    color: var(--text-normal);
-    background: var(--background-primary);
-    padding: 2px 6px;
-    border-radius: 3px;
-    border: 1px solid var(--background-modifier-border);
-  }
-
-  .mt-task-rm {
-    opacity: 0;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 12px;
-    padding: 0;
-    line-height: 1;
-    transition: opacity 0.1s;
-  }
-
-  .mt-task:hover .mt-task-rm {
-    opacity: 1;
-  }
-
-  .mt-task-rm:hover {
-    color: var(--text-error);
   }
 
   .mt-empty {

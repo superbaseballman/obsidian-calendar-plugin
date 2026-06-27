@@ -49,10 +49,9 @@ export default class CalendarView extends ItemView {
     this.onContextMenuWeek = this.onContextMenuWeek.bind(this);
 
     this.registerEvent(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (<any>this.app.workspace).on(
-        "periodic-notes:settings-updated",
-        this.onNoteSettingsUpdate
+      (this.app.workspace as Record<string, (...args: unknown[]) => unknown>).on(
+        "periodic-notes:settings-updated" as never,
+        this.onNoteSettingsUpdate as never
       )
     );
     this.registerEvent(this.app.vault.on("create", this.onFileCreated));
@@ -103,8 +102,7 @@ export default class CalendarView extends ItemView {
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 
     this.calendar = new Calendar({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: (this as any).contentEl,
+      target: this.contentEl,
       props: {
         onClickDay: this.openOrCreateDailyNote,
         onClickWeek: this.openOrCreateWeeklyNote,
@@ -248,7 +246,8 @@ export default class CalendarView extends ItemView {
   }
 
   private updateActiveFile(): void {
-    const { view } = this.app.workspace.activeLeaf;
+    const activeLeaf = this.app.workspace.activeLeaf;
+    const view = activeLeaf?.view;
 
     let file = null;
     if (view instanceof FileView) {
@@ -339,14 +338,14 @@ export default class CalendarView extends ItemView {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mode = (this.app.vault as any).getConfig("defaultViewMode");
+    const mode = (this.app.vault as { getConfig: (key: string) => string }).getConfig("defaultViewMode");
     const leaf = inNewSplit
       ? workspace.splitActiveLeaf()
       : workspace.getUnpinnedLeaf();
-    await leaf.openFile(existingFile, { active : true, mode });
+    await leaf.openFile(existingFile, { active: true, mode });
 
     activeFile.setFile(existingFile);
+    workspace.setActiveLeaf(leaf, true, true);
   }
 
   async openOrCreateMonthlyNote(

@@ -34,7 +34,7 @@ export class DateActionModal extends Modal {
 
     // Title
     contentEl.createEl("h2", {
-      text: this.date.format("YYYY年MM月DD日"),
+      text: this.date.format("YYYY-MM-DD"),
       cls: "date-action-title",
     });
 
@@ -43,7 +43,7 @@ export class DateActionModal extends Modal {
 
     // Option 1: Open daily note
     const dailyBtn = btnContainer.createEl("button", {
-      text: "📝 记日记",
+      text: "Open daily note",
       cls: "date-action-btn",
     });
     dailyBtn.addEventListener("click", () => {
@@ -53,7 +53,7 @@ export class DateActionModal extends Modal {
 
     // Option 2: Open monthly note for editing
     const addBtn = btnContainer.createEl("button", {
-      text: "📋 打开月记",
+      text: "Open monthly note",
       cls: "date-action-btn",
     });
     addBtn.addEventListener("click", () => {
@@ -63,7 +63,7 @@ export class DateActionModal extends Modal {
 
     // Cancel button
     const cancelBtn = contentEl.createEl("button", {
-      text: "取消",
+      text: "Cancel",
       cls: "date-action-cancel",
     });
     cancelBtn.addEventListener("click", () => this.close());
