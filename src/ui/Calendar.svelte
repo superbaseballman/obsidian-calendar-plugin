@@ -3,7 +3,7 @@
 <script lang="ts">
   import type { Moment } from "moment";
   import type { TFile } from "obsidian";
-  import { MarkdownRenderer } from "obsidian";
+  import { Component, MarkdownRenderer } from "obsidian";
   import {
     Calendar as CalendarBase,
     ICalendarSource,
@@ -17,9 +17,15 @@
     parseMonthlyNoteSections,
     getMonthlyNote,
     tryToCreateMonthlyNote,
+    saveDaySection,
   } from "src/io/monthlyNotes";
   import { activeFile, dailyNotes, settings, weeklyNotes, monthlyNotes } from "./stores";
   import { DateActionModal } from "./modal";
+
+  // Component for MarkdownRenderer to properly track lifecycle
+  // Must call load() so embedded content (images, etc.) registers properly
+  const markdownComponent = new Component();
+  markdownComponent.load();
 
   let today: Moment;
 
@@ -43,6 +49,10 @@
   // Monthly note content rendering
   let dayContents: Record<string, string> = {};
 
+  // Editing state
+  let editingDay: string | null = null;
+  let editText: string = "";
+
   const unsubSettings = settings.subscribe((val) => {
     currentSettings = val;
   });
@@ -58,8 +68,8 @@
     }
   }
 
-  $: daysWithTasks = Object.keys(monthTasks)
-    .filter((d) => monthTasks[d] && monthTasks[d].length > 0)
+  $: daysWithTasks = Object.keys(dayContents)
+    .filter((d) => dayContents[d] && dayContents[d].trim().length > 0)
     .sort((a, b) => parseInt(a) - parseInt(b));
 
   async function loadMonthTasks(date: Moment) {
@@ -100,7 +110,7 @@
   }
 
   async function openMonthlyNoteForEdit(date: Moment) {
-    const { workspace } = window.app;
+    const { workspace, vault } = window.app;
     
     // Get or create monthly note
     let file = getMonthlyNote(displayedMonth, $monthlyNotes);
@@ -111,27 +121,41 @@
     }
     
     if (file) {
-      const leaf = workspace.getUnpinnedLeaf();
-      await leaf.openFile(file, { active: true });
+      // Ensure the day section exists, create it if not
+      const dayStr = date.format("DD");
+      let content = await vault.cachedRead(file);
+      const lines = content.split("\n");
+      let targetLine = -1;
       
-      // Set cursor to the day section if it exists
-      const editor = workspace.activeEditor?.editor;
-      if (editor) {
-        const content = await window.app.vault.cachedRead(file);
-        const dayStr = date.format("DD");
-        const lines = content.split("\n");
-        let targetLine = -1;
-        
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].match(new RegExp(`^##\\s+${dayStr}`))) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(new RegExp(`^##\\s+${dayStr}`))) {
+          targetLine = i;
+          break;
+        }
+      }
+      
+      // Day section doesn't exist — append it
+      if (targetLine < 0) {
+        const newSection = `\n\n## ${dayStr}\n`;
+        await vault.modify(file, content.trimEnd() + newSection);
+        // Re-read to get updated content and find the new line
+        content = await vault.cachedRead(file);
+        const updatedLines = content.split("\n");
+        for (let i = 0; i < updatedLines.length; i++) {
+          if (updatedLines[i].match(new RegExp(`^##\\s+${dayStr}`))) {
             targetLine = i;
             break;
           }
         }
-        
-        if (targetLine >= 0) {
-          editor.setCursor({ line: targetLine + 1, ch: 0 });
-        }
+      }
+      
+      const leaf = workspace.getUnpinnedLeaf();
+      await leaf.openFile(file, { active: true });
+      
+      // Set cursor to the day section
+      const editor = workspace.activeEditor?.editor;
+      if (editor && targetLine >= 0) {
+        editor.setCursor({ line: targetLine + 1, ch: 0 });
       }
     }
     
@@ -142,13 +166,50 @@
     // Placeholder for future use
   }
 
+  function startEditDay(day: string) {
+    editingDay = day;
+    editText = dayContents[day] || "";
+  }
+
+  function cancelEdit() {
+    editingDay = null;
+    editText = "";
+  }
+
+  async function saveEditDay(day: string) {
+    if (!monthFile) return;
+    const newContent = editText.trim();
+    try {
+      await saveDaySection(monthFile, day, newContent);
+      // Update local state immediately
+      dayContents[day] = newContent;
+      dayContents = { ...dayContents };
+      // Re-parse tasks in case they changed
+      const fileContent = await window.app.vault.cachedRead(monthFile);
+      monthTasks = parseMonthlyNoteTasks(fileContent);
+      editingDay = null;
+      editText = "";
+    } catch (err) {
+      console.log("[Calendar] Failed to save day section", err);
+    }
+  }
+
+  export function refreshMonthlyContent() {
+    if (displayedMonth) {
+      loadMonthTasks(displayedMonth);
+    }
+  }
+
   function renderMarkdown(node: HTMLElement, content: string) {
     if (!content || !monthFile) {
       node.empty();
       return;
     }
     node.empty();
-    MarkdownRenderer.renderMarkdown(content, node, monthFile.path, null);
+    // Unload and reload component to clean up previous embedded content handlers
+    markdownComponent.unload();
+    markdownComponent.load();
+    MarkdownRenderer.renderMarkdown(content, node, monthFile.path, markdownComponent);
 
     return {
       update(newContent: string) {
@@ -157,7 +218,9 @@
           return;
         }
         node.empty();
-        MarkdownRenderer.renderMarkdown(newContent, node, monthFile.path, null);
+        markdownComponent.unload();
+        markdownComponent.load();
+        MarkdownRenderer.renderMarkdown(newContent, node, monthFile.path, markdownComponent);
       },
     };
   }
@@ -196,6 +259,7 @@
   onDestroy(() => {
     clearInterval(heartbeat);
     unsubSettings();
+    markdownComponent.unload();
   });
 </script>
 
@@ -217,13 +281,32 @@
 
   {#if currentSettings?.showMonthlyNote && displayedMonth}
     <!-- Monthly note content rendered below calendar container -->
-    {#if monthFile && daysWithTasks.length > 0}
+    {#if monthFile && Object.keys(dayContents).filter(d => dayContents[d]?.trim()).length > 0}
       <div class="mt-content-section">
         {#each daysWithTasks as day}
-          {#if dayContents[day]}
+          {#if dayContents[day] || editingDay === day}
             <div class="mt-day-block">
               <div class="mt-day-label">{day}日</div>
-              <div class="mt-markdown-content" use:renderMarkdown={dayContents[day]}></div>
+              {#if editingDay === day}
+                <div class="mt-edit-area">
+                  <textarea
+                    class="mt-edit-textarea"
+                    bind:value={editText}
+                    placeholder="输入 Markdown 内容..."
+                  ></textarea>
+                  <div class="mt-edit-actions">
+                    <button class="mt-edit-save" on:click={() => saveEditDay(day)}>保存</button>
+                    <button class="mt-edit-cancel" on:click={cancelEdit}>取消</button>
+                  </div>
+                </div>
+              {:else}
+                <div
+                  class="mt-markdown-content"
+                  use:renderMarkdown={dayContents[day]}
+                  on:dblclick={() => startEditDay(day)}
+                  title="双击编辑内容"
+                ></div>
+              {/if}
             </div>
           {/if}
         {/each}
@@ -488,5 +571,66 @@
 
   .mt-markdown-content :global(a:hover) {
     text-decoration: underline;
+  }
+
+  /* Edit area */
+  .mt-edit-area {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mt-edit-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 8px;
+    font-size: 13px;
+    font-family: var(--font-monospace);
+    line-height: 1.5;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    resize: vertical;
+  }
+
+  .mt-edit-textarea:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+  }
+
+  .mt-edit-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .mt-edit-save {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .mt-edit-save:hover {
+    background: var(--interactive-accent-hover);
+  }
+
+  .mt-edit-cancel {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: var(--background-primary);
+    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .mt-edit-cancel:hover {
+    color: var(--text-normal);
+    border-color: var(--text-muted);
   }
 </style>

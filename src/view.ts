@@ -23,6 +23,7 @@ import {
   streakSource,
   tasksSource,
   wordCountSource,
+  monthlyTasksSource,
 } from "./ui/sources";
 
 export default class CalendarView extends ItemView {
@@ -97,6 +98,7 @@ export default class CalendarView extends ItemView {
       streakSource,
       wordCountSource,
       tasksSource,
+      monthlyTasksSource,
     ];
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 
@@ -214,6 +216,7 @@ export default class CalendarView extends ItemView {
       const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
       if (monthlyMatch && this.calendar) {
         this.calendar.tick();
+        this.calendar.refreshMonthlyContent();
       }
     }
   }

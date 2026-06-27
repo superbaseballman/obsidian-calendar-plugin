@@ -217,3 +217,57 @@ export async function saveMonthlyNoteTasks(
   const content = serializeMonthlyNoteTasks(tasks, monthTitle);
   await vault.modify(file, content);
 }
+
+/**
+ * Save content for a specific day section in a monthly note file.
+ * Finds the `## DD` header and replaces everything until the next
+ * `##` or `#` header (or end of file) with newContent.
+ * If the day section doesn't exist, it appends it at the end.
+ */
+export async function saveDaySection(
+  file: TFile,
+  day: string,
+  newContent: string
+): Promise<void> {
+  const { vault } = window.app;
+  const content = await vault.read(file);
+  const lines = content.split("\n");
+  const dayPadded = day.padStart(2, "0");
+
+  // Find the day section
+  let startLine = -1;
+  let endLine = lines.length;
+
+  for (let i = 0; i < lines.length; i++) {
+    const dayMatch = lines[i].match(/^##\s+(\d{1,2})(?:\s|$)/);
+    if (dayMatch) {
+      const foundDay = dayMatch[1].padStart(2, "0");
+      if (foundDay === dayPadded) {
+        startLine = i;
+        // Find the end of this section (next ## or # header)
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j].match(/^##\s/) || lines[j].match(/^#\s/)) {
+            endLine = j;
+            break;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  if (startLine >= 0) {
+    // Replace existing section: keep the header line, replace content after it
+    const before = lines.slice(0, startLine + 1);
+    const after = lines.slice(endLine);
+    const newLines = newContent.trim() ? newContent.trim().split("\n") : [];
+    // Ensure blank line between sections
+    const result = [...before, ...newLines, ...(after.length > 0 && after[0] !== "" ? [""] : []), ...after];
+    await vault.modify(file, result.join("\n"));
+  } else {
+    // Append new section at the end
+    const newSection = [`## ${dayPadded}`, ...newContent.trim().split("\n"), ""];
+    const newFileContent = content.trimEnd() + "\n\n" + newSection.join("\n");
+    await vault.modify(file, newFileContent.trimEnd() + "\n");
+  }
+}
