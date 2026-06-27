@@ -35,8 +35,8 @@ export function getAllMonthlyNotes(): Record<string, TFile> {
     if (folder && !file.path.startsWith(folder)) {
       return;
     }
-    // Match YYYY-MM format at the beginning of the filename
-    const match = file.basename.match(/^(\d{4}-\d{2})/);
+    // Match YYYY-MM format exactly (not YYYY-MM-DD daily notes)
+    const match = file.basename.match(/^(\d{4}-\d{2})$/);
     if (match) {
       notes[match[1]] = file;
     }
