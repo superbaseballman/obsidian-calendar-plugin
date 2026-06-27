@@ -187,36 +187,68 @@
 
   function resolveImagePaths(node: HTMLElement) {
     if (!monthFile) return;
-    const images = node.querySelectorAll("img");
     const folder = monthFile.parent?.path || "";
-    images.forEach((img) => {
-      const src = img.getAttribute("src");
-      if (!src || src.startsWith("app://") || src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:")) {
-        return; // skip already resolved or external URLs
-      }
-      // Resolve relative path to absolute vault path
-      let absPath = src;
-      if (!src.startsWith("/")) {
-        // Relative path — resolve against the monthly note's folder
-        const parts = folder.split("/").filter(Boolean);
-        const srcParts = src.split("/");
-        for (const part of srcParts) {
-          if (part === "..") {
-            parts.pop();
-          } else if (part !== ".") {
-            parts.push(part);
-          }
+
+    function resolveAbsPath(src: string): string {
+      if (src.startsWith("/")) return src.slice(1);
+      // Relative path — resolve against the monthly note's folder
+      const parts = folder.split("/").filter(Boolean);
+      const srcParts = src.split("/");
+      for (const part of srcParts) {
+        if (part === "..") {
+          parts.pop();
+        } else if (part !== ".") {
+          parts.push(part);
         }
-        absPath = parts.join("/");
-      } else {
-        absPath = src.slice(1); // remove leading /
       }
-      // Use Obsidian vault to get the resource URL
+      return parts.join("/");
+    }
+
+    function getResolvedSrc(src: string): string | null {
+      if (!src || src.startsWith("app://") || src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:")) {
+        return null;
+      }
+      const absPath = resolveAbsPath(src);
       const file = window.app.vault.getAbstractFileByPath(absPath);
       if (file) {
-        const resourcePath = window.app.vault.getResourcePath(file);
-        img.setAttribute("src", resourcePath);
+        return window.app.vault.getResourcePath(file);
       }
+      return null;
+    }
+
+    // 1. Fix existing <img> tags
+    const images = node.querySelectorAll("img");
+    images.forEach((img) => {
+      const src = img.getAttribute("src");
+      const resolved = getResolvedSrc(src);
+      if (resolved) {
+        img.setAttribute("src", resolved);
+      }
+    });
+
+    // 2. Convert Obsidian's <span class="internal-embed"> to <img> tags
+    const embeds = node.querySelectorAll("span.internal-embed");
+    embeds.forEach((span) => {
+      const src = span.getAttribute("src");
+      if (!src) return;
+      // Only convert image-type embeds (check file extension or existing class)
+      const isImage = /\.(png|jpe?g|gif|bmp|svg|webp|avif|tiff?)$/i.test(src) || span.classList.contains("image");
+      if (!isImage) return;
+
+      let finalSrc = src;
+      // If it's not already an app:// or external URL, resolve via vault API
+      if (!src.startsWith("app://") && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("data:")) {
+        const resolved = getResolvedSrc(src);
+        if (resolved) {
+          finalSrc = resolved;
+        }
+      }
+
+      const img = document.createElement("img");
+      img.setAttribute("src", finalSrc);
+      img.setAttribute("alt", span.getAttribute("alt") || src);
+      img.classList.add("mt-resolved-image");
+      span.replaceWith(img);
     });
   }
 

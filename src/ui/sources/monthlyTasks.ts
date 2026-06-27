@@ -4,10 +4,10 @@ import type { ICalendarSource, IDayMetadata, IDot } from "obsidian-calendar-ui";
 import { get } from "svelte/store";
 
 import { monthlyNotes } from "../stores";
-import { parseMonthlyNoteTasks } from "src/io/monthlyNotes";
+import { parseMonthlyNoteSections } from "src/io/monthlyNotes";
 
 /**
- * Check if a date's day has tasks in the monthly note.
+ * Check if a date's day has any content in the monthly note.
  */
 async function getDotsForMonthlyNote(
   date: Moment,
@@ -22,15 +22,15 @@ async function getDotsForMonthlyNote(
 
   try {
     const content = await window.app.vault.cachedRead(file);
-    const tasks = parseMonthlyNoteTasks(content);
+    const sections = parseMonthlyNoteSections(content);
     const dayKey = date.format("DD");
 
-    if (tasks[dayKey] && tasks[dayKey].length > 0) {
+    if (sections[dayKey] && sections[dayKey].trim().length > 0) {
       return [
         {
           className: "monthly-task",
           color: "purple",
-          isFilled: false,
+          isFilled: true,
         },
       ];
     }
