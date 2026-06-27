@@ -12,11 +12,12 @@ import { get } from "svelte/store";
 import { TRIGGER_ON_OPEN, VIEW_TYPE_CALENDAR } from "src/constants";
 import { tryToCreateDailyNote } from "src/io/dailyNotes";
 import { tryToCreateWeeklyNote } from "src/io/weeklyNotes";
+import { getAllMonthlyNotes, tryToCreateMonthlyNote, getMonthlyNote } from "src/io/monthlyNotes";
 import type { ISettings } from "src/settings";
 
 import Calendar from "./ui/Calendar.svelte";
 import { showFileMenu } from "./ui/fileMenu";
-import { activeFile, dailyNotes, weeklyNotes, settings } from "./ui/stores";
+import { activeFile, dailyNotes, weeklyNotes, monthlyNotes, settings } from "./ui/stores";
 import {
   customTagsSource,
   streakSource,
@@ -179,6 +180,9 @@ export default class CalendarView extends ItemView {
   private onNoteSettingsUpdate(): void {
     dailyNotes.reindex();
     weeklyNotes.reindex();
+    if (this.settings.showMonthlyNote) {
+      monthlyNotes.reindex();
+    }
     this.updateActiveFile();
   }
 
@@ -191,12 +195,26 @@ export default class CalendarView extends ItemView {
       weeklyNotes.reindex();
       this.updateActiveFile();
     }
+    if (this.settings.showMonthlyNote) {
+      // Check if it's a monthly note by basename pattern
+      const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+      if (monthlyMatch) {
+        monthlyNotes.reindex();
+        this.updateActiveFile();
+      }
+    }
   }
 
   private async onFileModified(file: TFile): Promise<void> {
     const date = getDateFromFile(file, "day") || getDateFromFile(file, "week");
     if (date && this.calendar) {
       this.calendar.tick();
+    }
+    if (this.settings.showMonthlyNote) {
+      const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+      if (monthlyMatch && this.calendar) {
+        this.calendar.tick();
+      }
     }
   }
 
@@ -209,6 +227,13 @@ export default class CalendarView extends ItemView {
       if (getDateFromFile(file, "week")) {
         weeklyNotes.reindex();
         this.calendar.tick();
+      }
+      if (this.settings.showMonthlyNote) {
+        const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+        if (monthlyMatch) {
+          monthlyNotes.reindex();
+          this.calendar.tick();
+        }
       }
     }
   }
@@ -251,6 +276,16 @@ export default class CalendarView extends ItemView {
       if (date.isValid()) {
         this.calendar.$set({ displayedMonth: date });
         return;
+      }
+
+      // Check to see if the active note is a monthly-note
+      const monthlyMatch = activeLeaf.view.file.basename.match(/^(\d{4}-\d{2})/);
+      if (monthlyMatch) {
+        date = moment(monthlyMatch[1], "YYYY-MM", true);
+        if (date.isValid()) {
+          this.calendar.$set({ displayedMonth: date });
+          return;
+        }
       }
     }
   }
@@ -309,5 +344,31 @@ export default class CalendarView extends ItemView {
     await leaf.openFile(existingFile, { active : true, mode });
 
     activeFile.setFile(existingFile);
+  }
+
+  async openOrCreateMonthlyNote(
+    date: Moment,
+    inNewSplit: boolean
+  ): Promise<void> {
+    const { workspace } = this.app;
+
+    const monthlyNotesData = getAllMonthlyNotes();
+    const existingFile = getMonthlyNote(date, monthlyNotesData);
+
+    if (!existingFile) {
+      tryToCreateMonthlyNote(date, inNewSplit, this.settings, (file) => {
+        monthlyNotes.reindex();
+        activeFile.setFile(file);
+      });
+      return;
+    }
+
+    const leaf = inNewSplit
+      ? workspace.splitActiveLeaf()
+      : workspace.getUnpinnedLeaf();
+    await leaf.openFile(existingFile);
+
+    activeFile.setFile(existingFile);
+    workspace.setActiveLeaf(leaf, true, true);
   }
 }

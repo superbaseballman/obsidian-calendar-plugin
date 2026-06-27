@@ -6,6 +6,7 @@ import {
 import { writable } from "svelte/store";
 
 import { defaultSettings, ISettings } from "src/settings";
+import { getAllMonthlyNotes } from "src/io/monthlyNotes";
 
 import { getDateUIDFromFile } from "./utils";
 
@@ -53,9 +54,26 @@ function createWeeklyNotesStore() {
   };
 }
 
+function createMonthlyNotesStore() {
+  const store = writable<Record<string, TFile>>(null);
+  return {
+    reindex: () => {
+      try {
+        const monthlyNotes = getAllMonthlyNotes();
+        store.set(monthlyNotes);
+      } catch (err) {
+        console.log("[Calendar] Failed to find monthly notes folder", err);
+        store.set({});
+      }
+    },
+    ...store,
+  };
+}
+
 export const settings = writable<ISettings>(defaultSettings);
 export const dailyNotes = createDailyNotesStore();
 export const weeklyNotes = createWeeklyNotesStore();
+export const monthlyNotes = createMonthlyNotesStore();
 
 function createSelectedFileStore() {
   const store = writable<string>(null);

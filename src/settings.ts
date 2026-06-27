@@ -3,6 +3,7 @@ import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WEEK_FORMAT, DEFAULT_WORDS_PER_DOT } from "src/constants";
+import { DEFAULT_MONTHLY_FORMAT } from "src/io/monthlyNotes";
 
 import type CalendarPlugin from "./main";
 
@@ -16,6 +17,10 @@ export interface ISettings {
   weeklyNoteFormat: string;
   weeklyNoteTemplate: string;
   weeklyNoteFolder: string;
+
+  // Monthly Note settings
+  showMonthlyNote: boolean;
+  monthlyNoteFormat: string;
 
   localeOverride: ILocaleOverride;
 }
@@ -40,6 +45,9 @@ export const defaultSettings = Object.freeze({
   weeklyNoteFormat: "",
   weeklyNoteTemplate: "",
   weeklyNoteFolder: "",
+
+  showMonthlyNote: false,
+  monthlyNoteFormat: "",
 
   localeOverride: "system-default",
 });
@@ -81,6 +89,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addWeekStartSetting();
     this.addConfirmCreateSetting();
     this.addShowWeeklyNoteSetting();
+    this.addShowMonthlyNoteSetting();
 
     if (
       this.plugin.options.showWeeklyNote &&
@@ -97,6 +106,13 @@ export class CalendarSettingsTab extends PluginSettingTab {
       this.addWeeklyNoteFormatSetting();
       this.addWeeklyNoteTemplateSetting();
       this.addWeeklyNoteFolderSetting();
+    }
+
+    if (this.plugin.options.showMonthlyNote) {
+      this.containerEl.createEl("h3", {
+        text: "Monthly Note Settings",
+      });
+      this.addMonthlyNoteFormatSetting();
     }
 
     this.containerEl.createEl("h3", {
@@ -233,6 +249,32 @@ export class CalendarSettingsTab extends PluginSettingTab {
           this.plugin.writeOptions(() => ({
             localeOverride: value as ILocaleOverride,
           }));
+        });
+      });
+  }
+
+  addShowMonthlyNoteSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Show monthly notes")
+      .setDesc("Enable monthly note support (format: YYYY-MM)")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.showMonthlyNote);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ showMonthlyNote: value }));
+          this.display(); // show/hide monthly settings
+        });
+      });
+  }
+
+  addMonthlyNoteFormatSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Monthly note format")
+      .setDesc("Format for monthly note filenames (default: YYYY-MM)")
+      .addText((textfield) => {
+        textfield.setValue(this.plugin.options.monthlyNoteFormat);
+        textfield.setPlaceholder(DEFAULT_MONTHLY_FORMAT);
+        textfield.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ monthlyNoteFormat: value }));
         });
       });
   }

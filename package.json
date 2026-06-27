@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "svelte-check && eslint . --ext .ts",
     "build": "npm run lint && rollup -c",
+    "dev": "rollup -c --watch",
     "test": "jest --passWithNoTests",
     "test:watch": "yarn test -- --watch"
   },
