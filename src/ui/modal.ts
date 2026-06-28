@@ -31,6 +31,7 @@ export class DateActionModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
+    this.modalEl.addClass("date-action-modal");
 
     // Title
     contentEl.createEl("h2", {

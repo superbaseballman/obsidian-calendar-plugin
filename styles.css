@@ -11,6 +11,12 @@
 }
 
 /* DateActionModal styles */
+.date-action-modal {
+  width: 20%;
+  max-width: 90vw;
+  min-width: 180px;
+}
+
 .date-action-title {
   text-align: center;
   margin-bottom: 16px;

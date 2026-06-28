@@ -157,15 +157,48 @@
   function startEditDay(day: string) {
     editingDay = day;
     editText = dayContents[day] || "";
+    originalEditContent = editText;
+    hasEdited = false;
+    textareaFocused = false;
+    // Auto-focus the textarea after it renders
+    requestAnimationFrame(() => {
+      const textarea = document.querySelector(".mt-edit-textarea") as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    });
   }
 
+  let isCancelling = false;
+  let originalEditContent: string = "";
+  let hasEdited: boolean = false;
+  let textareaFocused: boolean = false;
+
   function cancelEdit() {
+    isCancelling = true;
     editingDay = null;
     editText = "";
+    hasEdited = false;
+    textareaFocused = false;
+    // Reset flag after blur event fires
+    requestAnimationFrame(() => { isCancelling = false; });
+  }
+
+  function onTextareaFocus() {
+    textareaFocused = true;
+  }
+
+  function onTextareaBlur(day: string) {
+    if (isCancelling) return;
+    if (textareaFocused && hasEdited && editText.trim() !== originalEditContent.trim()) {
+      // Textarea was focused and content was modified — save
+      saveEditDay(day);
+    } else {
+      // Textarea never focused, or no changes — cancel silently
+      cancelEdit();
+    }
   }
 
   async function saveEditDay(day: string) {
-    if (!monthFile) return;
+    if (!monthFile || isCancelling) return;
     const newContent = editText.trim();
     try {
       await saveDaySection(monthFile, day, newContent);
@@ -174,6 +207,7 @@
       dayContents = { ...dayContents };
       editingDay = null;
       editText = "";
+      hasEdited = false;
     } catch (err) {
       console.log("[Calendar] Failed to save day section", err);
     }
@@ -289,6 +323,40 @@
     });
   }
 
+  // Click on month label to create monthly note
+  // Use capture phase to intercept before CalendarBase's resetDisplayedMonth
+  let calendarWrapper: HTMLElement | null = null;
+
+  function handleMonthLabelClick(e: Event) {
+    const target = e.target as HTMLElement;
+    // Only respond to clicks on the month label span
+    if (!target.closest(".month")) return;
+    if (!currentSettings?.showMonthlyNote) return;
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (monthFile) {
+      // Monthly note exists — open it
+      window.app.workspace.getUnpinnedLeaf().openFile(monthFile, { active: true });
+    } else {
+      // No monthly note — create it
+      createMonthlyNote();
+    }
+  }
+
+  // Svelte action to attach capture-phase listener when the wrapper mounts
+  function monthClickAction(node: HTMLElement) {
+    calendarWrapper = node;
+    node.addEventListener("click", handleMonthLabelClick, true); // capture phase
+
+    return {
+      destroy() {
+        node.removeEventListener("click", handleMonthLabelClick, true);
+        calendarWrapper = null;
+      },
+    };
+  }
+
   export function tick() {
     today = window.moment();
   }
@@ -320,7 +388,7 @@
   });
 </script>
 
-<div class="calendar-wrapper">
+<div class="calendar-wrapper" use:monthClickAction>
   <CalendarBase
     {sources}
     {today}
@@ -350,11 +418,11 @@
                     class="mt-edit-textarea"
                     bind:value={editText}
                     placeholder="Enter Markdown content..."
+                    on:focus={onTextareaFocus}
+                    on:input={() => { hasEdited = true; }}
+                    on:blur={() => onTextareaBlur(day)}
+                    on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
                   ></textarea>
-                  <div class="mt-edit-actions">
-                    <button class="mt-edit-save" on:click={() => saveEditDay(day)}>Save</button>
-                    <button class="mt-edit-cancel" on:click={cancelEdit}>Cancel</button>
-                  </div>
                 </div>
               {:else}
                 <div
@@ -465,6 +533,24 @@
     margin: 2px 0;
   }
 
+  /* Task list (checkbox) alignment fix */
+  .mt-markdown-content :global(.task-list-item) {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    list-style: none;
+    margin-left: -20px;
+  }
+
+  .mt-markdown-content :global(.task-list-item-checkbox) {
+    margin: 0;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    position: relative;
+    top: 2px;
+  }
+
   .mt-markdown-content :global(blockquote) {
     border-left: 3px solid var(--text-faint);
     padding-left: 12px;
@@ -524,40 +610,5 @@
   .mt-edit-textarea:focus {
     border-color: var(--interactive-accent);
     outline: none;
-  }
-
-  .mt-edit-actions {
-    display: flex;
-    gap: 6px;
-    justify-content: flex-end;
-  }
-
-  .mt-edit-save {
-    padding: 4px 12px;
-    font-size: 12px;
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .mt-edit-save:hover {
-    background: var(--interactive-accent-hover);
-  }
-
-  .mt-edit-cancel {
-    padding: 4px 12px;
-    font-size: 12px;
-    background: var(--background-primary);
-    color: var(--text-muted);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .mt-edit-cancel:hover {
-    color: var(--text-normal);
-    border-color: var(--text-muted);
   }
 </style>
