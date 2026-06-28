@@ -7,6 +7,7 @@ import { writable } from "svelte/store";
 
 import { defaultSettings, ISettings } from "src/settings";
 import { getAllMonthlyNotes } from "src/io/monthlyNotes";
+import { t } from "../i18n";
 
 import { getDateUIDFromFile } from "./utils";
 
@@ -22,7 +23,7 @@ function createDailyNotesStore() {
       } catch (err) {
         if (!hasError) {
           // Avoid error being shown multiple times
-          console.log("[Calendar] Failed to find daily notes folder", err);
+          console.log(t('error.dailyNotesFolder'), err);
         }
         store.set({});
         hasError = true;
@@ -44,7 +45,7 @@ function createWeeklyNotesStore() {
       } catch (err) {
         if (!hasError) {
           // Avoid error being shown multiple times
-          console.log("[Calendar] Failed to find weekly notes folder", err);
+          console.log(t('error.weeklyNotesFolder'), err);
         }
         store.set({});
         hasError = true;
@@ -65,7 +66,7 @@ function createMonthlyNotesStore() {
         hasError = false;
       } catch (err) {
         if (!hasError) {
-          console.log("[Calendar] Failed to find monthly notes folder", err);
+          console.log(t('error.monthlyNotesFolder'), err);
         }
         store.set({});
         hasError = true;

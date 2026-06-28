@@ -4,6 +4,7 @@ import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WEEK_FORMAT, DEFAULT_WORDS_PER_DOT } from "src/constants";
 import { DEFAULT_MONTHLY_FORMAT } from "src/io/monthlyNotes";
+import { t } from "./i18n";
 
 import type CalendarPlugin from "./main";
 
@@ -71,18 +72,17 @@ export class CalendarSettingsTab extends PluginSettingTab {
     if (!appHasDailyNotesPluginLoaded()) {
       this.containerEl.createDiv("settings-banner", (banner) => {
         banner.createEl("h3", {
-          text: "⚠️ Daily Notes plugin not enabled",
+          text: t('settings.banner.dailyNotesDisabled'),
         });
         banner.createEl("p", {
           cls: "setting-item-description",
-          text:
-            "The calendar is best used in conjunction with either the Daily Notes plugin or the Periodic Notes plugin (available in the Community Plugins catalog).",
+          text: t('settings.banner.dailyNotesDisabled.desc'),
         });
       });
     }
 
     this.containerEl.createEl("h3", {
-      text: "General Settings",
+      text: t('settings.general'),
     });
     this.addDotThresholdSetting();
     this.addWeekStartSetting();
@@ -95,12 +95,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
       !appHasPeriodicNotesPluginLoaded()
     ) {
       this.containerEl.createEl("h3", {
-        text: "Weekly Note Settings",
+        text: t('settings.weekly'),
       });
       this.containerEl.createEl("p", {
         cls: "setting-item-description",
-        text:
-          "Note: Weekly Note settings are moving. You are encouraged to install the 'Periodic Notes' plugin to keep the functionality in the future.",
+        text: t('settings.weekly.moving'),
       });
       this.addWeeklyNoteFormatSetting();
       this.addWeeklyNoteTemplateSetting();
@@ -109,21 +108,21 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
     if (this.plugin.options.showMonthlyNote) {
       this.containerEl.createEl("h3", {
-        text: "Monthly Note Settings",
+        text: t('settings.monthly'),
       });
       this.addMonthlyNoteFormatSetting();
     }
 
     this.containerEl.createEl("h3", {
-      text: "Advanced Settings",
+      text: t('settings.advanced'),
     });
     this.addLocaleOverrideSetting();
   }
 
   addDotThresholdSetting(): void {
     new Setting(this.containerEl)
-      .setName("Words per dot")
-      .setDesc("How many words should be represented by a single dot?")
+      .setName(t('settings.wordsPerDot'))
+      .setDesc(t('settings.wordsPerDot.desc'))
       .addText((textfield) => {
         textfield.setPlaceholder(String(DEFAULT_WORDS_PER_DOT));
         textfield.inputEl.type = "number";
@@ -144,12 +143,10 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const localeWeekStart = moment.weekdays()[localeWeekStartNum];
 
     new Setting(this.containerEl)
-      .setName("Start week on:")
-      .setDesc(
-        "Choose what day of the week to start. Select 'Locale default' to use the default specified by moment.js"
-      )
+      .setName(t('settings.weekStart'))
+      .setDesc(t('settings.weekStart.desc'))
       .addDropdown((dropdown) => {
-        dropdown.addOption("locale", `Locale default (${localeWeekStart})`);
+        dropdown.addOption("locale", t('settings.weekStart.localeDefault', { day: localeWeekStart }));
         localizedWeekdays.forEach((day, i) => {
           dropdown.addOption(weekdays[i], day);
         });
@@ -164,8 +161,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addConfirmCreateSetting(): void {
     new Setting(this.containerEl)
-      .setName("Confirm before creating new note")
-      .setDesc("Show a confirmation modal before creating a new note")
+      .setName(t('settings.confirmCreate'))
+      .setDesc(t('settings.confirmCreate.desc'))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.shouldConfirmBeforeCreate);
         toggle.onChange(async (value) => {
@@ -178,8 +175,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addShowWeeklyNoteSetting(): void {
     new Setting(this.containerEl)
-      .setName("Show week number")
-      .setDesc("Enable this to add a column with the week number")
+      .setName(t('settings.showWeekNumber'))
+      .setDesc(t('settings.showWeekNumber.desc'))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.showWeeklyNote);
         toggle.onChange(async (value) => {
@@ -191,8 +188,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addWeeklyNoteFormatSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note format")
-      .setDesc("For more syntax help, refer to format reference")
+      .setName(t('settings.weekly.format'))
+      .setDesc(t('settings.weekly.format.desc'))
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteFormat);
         textfield.setPlaceholder(DEFAULT_WEEK_FORMAT);
@@ -204,10 +201,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addWeeklyNoteTemplateSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note template")
-      .setDesc(
-        "Choose the file you want to use as the template for your weekly notes"
-      )
+      .setName(t('settings.weekly.template'))
+      .setDesc(t('settings.weekly.template.desc'))
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteTemplate);
         textfield.onChange(async (value) => {
@@ -218,8 +213,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addWeeklyNoteFolderSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note folder")
-      .setDesc("New weekly notes will be placed here")
+      .setName(t('settings.weekly.folder'))
+      .setDesc(t('settings.weekly.folder.desc'))
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteFolder);
         textfield.onChange(async (value) => {
@@ -234,12 +229,10 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const sysLocale = navigator.language?.toLowerCase();
 
     new Setting(this.containerEl)
-      .setName("Override locale:")
-      .setDesc(
-        "Set this if you want to use a locale different from the default"
-      )
+      .setName(t('settings.locale'))
+      .setDesc(t('settings.locale.desc'))
       .addDropdown((dropdown) => {
-        dropdown.addOption("system-default", `Same as system (${sysLocale})`);
+        dropdown.addOption("system-default", t('settings.locale.systemDefault', { locale: sysLocale }));
         moment.locales().forEach((locale) => {
           dropdown.addOption(locale, locale);
         });
@@ -254,8 +247,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addShowMonthlyNoteSetting(): void {
     new Setting(this.containerEl)
-      .setName("Show monthly notes")
-      .setDesc("Enable monthly note support (format: YYYY-MM)")
+      .setName(t('settings.monthly.show'))
+      .setDesc(t('settings.monthly.show.desc'))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.showMonthlyNote);
         toggle.onChange(async (value) => {
@@ -267,8 +260,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addMonthlyNoteFormatSetting(): void {
     new Setting(this.containerEl)
-      .setName("Monthly note format")
-      .setDesc("Format for monthly note filenames (default: YYYY-MM)")
+      .setName(t('settings.monthly.format'))
+      .setDesc(t('settings.monthly.format.desc'))
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.monthlyNoteFormat);
         textfield.setPlaceholder(DEFAULT_MONTHLY_FORMAT);

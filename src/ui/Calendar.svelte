@@ -20,6 +20,7 @@
   } from "src/io/monthlyNotes";
   import { activeFile, dailyNotes, settings, weeklyNotes, monthlyNotes } from "./stores";
   import { DateActionModal } from "./modal";
+  import { t } from "../i18n";
 
   // Component for MarkdownRenderer to properly track lifecycle
   // Must call load() so embedded content (images, etc.) registers properly
@@ -77,7 +78,7 @@
         const content = await window.app.vault.cachedRead(monthFile);
         dayContents = parseMonthlyNoteSections(content);
       } catch (err) {
-        console.log("[Calendar] Failed to read monthly note", err);
+        console.log(t('error.readMonthlyNote'), err);
         dayContents = {};
       }
     } else {

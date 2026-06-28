@@ -1,5 +1,6 @@
 import { App, Modal } from "obsidian";
 import type { Moment } from "moment";
+import { t } from "../i18n";
 
 interface IConfirmationDialogParams {
   cta: string;
@@ -44,7 +45,7 @@ export class DateActionModal extends Modal {
 
     // Option 1: Open daily note
     const dailyBtn = btnContainer.createEl("button", {
-      text: "Open daily note",
+      text: t('modal.dateAction.openDailyNote'),
       cls: "date-action-btn",
     });
     dailyBtn.addEventListener("click", () => {
@@ -54,7 +55,7 @@ export class DateActionModal extends Modal {
 
     // Option 2: Open monthly note for editing
     const addBtn = btnContainer.createEl("button", {
-      text: "Open monthly note",
+      text: t('modal.dateAction.openMonthlyNote'),
       cls: "date-action-btn",
     });
     addBtn.addEventListener("click", () => {
@@ -64,7 +65,7 @@ export class DateActionModal extends Modal {
 
     // Cancel button
     const cancelBtn = contentEl.createEl("button", {
-      text: "Cancel",
+      text: t('modal.dateAction.cancel'),
       cls: "date-action-cancel",
     });
     cancelBtn.addEventListener("click", () => this.close());
@@ -86,7 +87,7 @@ export class ConfirmationModal extends Modal {
 
     this.contentEl.createDiv("modal-button-container", (buttonsEl) => {
       buttonsEl
-        .createEl("button", { text: "Never mind" })
+        .createEl("button", { text: t('modal.confirmation.neverMind') })
         .addEventListener("click", () => this.close());
 
       buttonsEl

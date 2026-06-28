@@ -14,6 +14,7 @@ import { tryToCreateDailyNote } from "src/io/dailyNotes";
 import { tryToCreateWeeklyNote } from "src/io/weeklyNotes";
 import { getAllMonthlyNotes, tryToCreateMonthlyNote, getMonthlyNote } from "src/io/monthlyNotes";
 import type { ISettings } from "src/settings";
+import { t } from "./i18n";
 
 import Calendar from "./ui/Calendar.svelte";
 import { showFileMenu } from "./ui/fileMenu";
@@ -75,7 +76,7 @@ export default class CalendarView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Calendar";
+    return t('calendar.title');
   }
 
   getIcon(): string {
