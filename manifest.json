@@ -3,9 +3,9 @@
   "name": "Calendar",
   "description": "Calendar view of your daily notes",
   "version": "1.7.0",
-  "author": "Liam Cain",
-  "authorUrl": "https://github.com/liamcain/",
-  "fundingUrl": "https://www.buymeacoffee.com/liamcain",
+  "author": "superbaseballman",
+  "authorUrl": "https://github.com/superbaseballman",
+  "fundingUrl": "https://github.com/superbaseballman/obsidian-calendar-plugin",
   "isDesktopOnly": false,
   "minAppVersion": "0.9.11"
 }

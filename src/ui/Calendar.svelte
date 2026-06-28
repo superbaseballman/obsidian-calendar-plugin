@@ -437,11 +437,6 @@
           {/if}
         {/each}
       </div>
-    {:else if !monthFile}
-      <div class="mt-empty">
-        <span>No monthly note</span>
-        <button class="mt-create-btn" on:click={createMonthlyNote}>Create {monthLabel}</button>
-      </div>
     {/if}
   {/if}
 </div>
