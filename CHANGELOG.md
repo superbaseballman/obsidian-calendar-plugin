@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.7.2] - 2026-06-28
+
+### Added
+- 左键/右键点击日期动作设置：可分别配置左键和右键点击日期时执行「打开日记」或「打开月记」
+- 月记小点颜色自定义设置：支持任意 CSS 颜色值（如 `#ff5733`、`purple`）
+- 新增设置项 `leftClickAction`、`rightClickAction`、`monthlyDotColor`
+
+### Changed
+- 移除 `DateActionModal` 弹窗，改为通过左/右键设置直接触发对应操作
+- 月记小点颜色从硬编码 `--purple` 改为 CSS 变量 `--monthly-dot-color`，支持用户自定义
+
 ## [1.7.1] - 2026-06-28
 
 ### Fixed

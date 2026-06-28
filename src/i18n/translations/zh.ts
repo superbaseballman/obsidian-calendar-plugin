@@ -29,12 +29,22 @@ export const zh: Record<TranslationKey, string> = {
   'settings.weekly.folder': '周记文件夹',
   'settings.weekly.folder.desc': '新的周记将放在此处',
   
+  // Settings - Click Actions
+  'settings.clickAction.daily': '日记',
+  'settings.clickAction.monthly': '月记',
+  'settings.leftClickAction': '左键点击动作',
+  'settings.leftClickAction.desc': '鼠标左键点击日期时执行的操作',
+  'settings.rightClickAction': '右键点击动作',
+  'settings.rightClickAction.desc': '鼠标右键点击日期时执行的操作',
+  
   // Settings - Monthly Notes
   'settings.monthly': '月记设置',
   'settings.monthly.show': '显示月记',
   'settings.monthly.show.desc': '启用月记支持（格式：YYYY-MM）',
   'settings.monthly.format': '月记格式',
   'settings.monthly.format.desc': '月记文件名格式（默认：YYYY-MM）',
+  'settings.monthly.dotColor': '月记小点颜色',
+  'settings.monthly.dotColor.desc': '日历上月记任务小点的颜色（CSS 颜色值，如 #9b59b6、purple）',
   
   // Settings - Advanced
   'settings.advanced': '高级设置',

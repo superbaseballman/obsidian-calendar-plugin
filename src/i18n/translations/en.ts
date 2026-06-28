@@ -27,12 +27,22 @@ export const en = {
   'settings.weekly.folder': 'Weekly note folder',
   'settings.weekly.folder.desc': 'New weekly notes will be placed here',
   
+  // Settings - Click Actions
+  'settings.clickAction.daily': 'Daily note',
+  'settings.clickAction.monthly': 'Monthly note',
+  'settings.leftClickAction': 'Left click action',
+  'settings.leftClickAction.desc': 'Action to perform when left-clicking a date',
+  'settings.rightClickAction': 'Right click action',
+  'settings.rightClickAction.desc': 'Action to perform when right-clicking a date',
+  
   // Settings - Monthly Notes
   'settings.monthly': 'Monthly Note Settings',
   'settings.monthly.show': 'Show monthly notes',
   'settings.monthly.show.desc': 'Enable monthly note support (format: YYYY-MM)',
   'settings.monthly.format': 'Monthly note format',
   'settings.monthly.format.desc': 'Format for monthly note filenames (default: YYYY-MM)',
+  'settings.monthly.dotColor': 'Monthly dot color',
+  'settings.monthly.dotColor.desc': 'Color for monthly task dots on the calendar (CSS color, e.g. #9b59b6, purple)',
   
   // Settings - Advanced
   'settings.advanced': 'Advanced Settings',

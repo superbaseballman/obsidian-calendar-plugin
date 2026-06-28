@@ -19,7 +19,6 @@
     saveDaySection,
   } from "src/io/monthlyNotes";
   import { activeFile, dailyNotes, settings, weeklyNotes, monthlyNotes } from "./stores";
-  import { DateActionModal } from "./modal";
   import { t } from "../i18n";
 
   // Component for MarkdownRenderer to properly track lifecycle
@@ -67,6 +66,11 @@
     }
   }
 
+  // Update CSS variable for monthly dot color
+  $: if (currentSettings?.monthlyDotColor && calendarWrapper) {
+    calendarWrapper.style.setProperty("--monthly-dot-color", currentSettings.monthlyDotColor);
+  }
+
   $: daysWithTasks = Object.keys(dayContents)
     .filter((d) => dayContents[d] && dayContents[d].trim().length > 0)
     .sort((a, b) => parseInt(a) - parseInt(b));
@@ -91,16 +95,28 @@
       return onClickDay(date, isMetaPressed);
     }
 
-    // Show DateActionModal
-    const modal = new DateActionModal(window.app, date, {
-      onOpenDailyNote: (d: Moment) => {
-        onClickDay(d, false);
-      },
-      onAddItem: (d: Moment) => {
-        openMonthlyNoteForEdit(d);
-      },
-    });
-    modal.open();
+    const action = currentSettings.leftClickAction || "daily";
+    if (action === "monthly") {
+      openMonthlyNoteForEdit(date);
+      return false;
+    }
+    // Default: open daily note
+    return onClickDay(date, isMetaPressed);
+  }
+
+  function handleDayRightClick(date: Moment, event: MouseEvent): boolean {
+    if (!currentSettings?.showMonthlyNote) {
+      return onContextMenuDay(date, event);
+    }
+
+    event.preventDefault();
+    const action = currentSettings.rightClickAction || "monthly";
+    if (action === "monthly") {
+      openMonthlyNoteForEdit(date);
+      return false;
+    }
+    // Default: open daily note
+    onClickDay(date, false);
     return false;
   }
 
@@ -395,7 +411,7 @@
     {today}
     {onHoverDay}
     {onHoverWeek}
-    {onContextMenuDay}
+    onContextMenuDay={currentSettings?.showMonthlyNote ? handleDayRightClick : onContextMenuDay}
     {onContextMenuWeek}
     onClickDay={currentSettings?.showMonthlyNote ? handleDayClick : onClickDay}
     {onClickWeek}

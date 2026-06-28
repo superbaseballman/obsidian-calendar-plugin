@@ -73,11 +73,11 @@
 }
 
 svg.filled.monthly-task {
-  fill: var(--purple, #9b59b6) !important;
+  fill: var(--monthly-dot-color, #9b59b6) !important;
 }
 
 svg.hollow.monthly-task {
-  stroke: var(--purple, #9b59b6) !important;
+  stroke: var(--monthly-dot-color, #9b59b6) !important;
   fill: none !important;
 }
 

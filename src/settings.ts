@@ -8,10 +8,16 @@ import { t } from "./i18n";
 
 import type CalendarPlugin from "./main";
 
+export type ClickAction = "daily" | "monthly";
+
 export interface ISettings {
   wordsPerDot: number;
   weekStart: IWeekStartOption;
   shouldConfirmBeforeCreate: boolean;
+
+  // Click behavior
+  leftClickAction: ClickAction;
+  rightClickAction: ClickAction;
 
   // Weekly Note settings
   showWeeklyNote: boolean;
@@ -22,6 +28,7 @@ export interface ISettings {
   // Monthly Note settings
   showMonthlyNote: boolean;
   monthlyNoteFormat: string;
+  monthlyDotColor: string;
 
   localeOverride: ILocaleOverride;
 }
@@ -42,6 +49,9 @@ export const defaultSettings = Object.freeze({
 
   wordsPerDot: DEFAULT_WORDS_PER_DOT,
 
+  leftClickAction: "daily" as ClickAction,
+  rightClickAction: "monthly" as ClickAction,
+
   showWeeklyNote: false,
   weeklyNoteFormat: "",
   weeklyNoteTemplate: "",
@@ -49,6 +59,7 @@ export const defaultSettings = Object.freeze({
 
   showMonthlyNote: false,
   monthlyNoteFormat: "",
+  monthlyDotColor: "#9b59b6",
 
   localeOverride: "system-default",
 });
@@ -87,6 +98,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addDotThresholdSetting();
     this.addWeekStartSetting();
     this.addConfirmCreateSetting();
+    this.addClickActionSettings();
     this.addShowWeeklyNoteSetting();
     this.addShowMonthlyNoteSetting();
 
@@ -111,6 +123,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
         text: t('settings.monthly'),
       });
       this.addMonthlyNoteFormatSetting();
+      this.addMonthlyDotColorSetting();
     }
 
     this.containerEl.createEl("h3", {
@@ -245,6 +258,43 @@ export class CalendarSettingsTab extends PluginSettingTab {
       });
   }
 
+  addClickActionSettings(): void {
+    const options: Record<string, string> = {
+      "daily": t('settings.clickAction.daily'),
+      "monthly": t('settings.clickAction.monthly'),
+    };
+
+    new Setting(this.containerEl)
+      .setName(t('settings.leftClickAction'))
+      .setDesc(t('settings.leftClickAction.desc'))
+      .addDropdown((dropdown) => {
+        Object.entries(options).forEach(([value, label]) => {
+          dropdown.addOption(value, label);
+        });
+        dropdown.setValue(this.plugin.options.leftClickAction);
+        dropdown.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({
+            leftClickAction: value as ClickAction,
+          }));
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName(t('settings.rightClickAction'))
+      .setDesc(t('settings.rightClickAction.desc'))
+      .addDropdown((dropdown) => {
+        Object.entries(options).forEach(([value, label]) => {
+          dropdown.addOption(value, label);
+        });
+        dropdown.setValue(this.plugin.options.rightClickAction);
+        dropdown.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({
+            rightClickAction: value as ClickAction,
+          }));
+        });
+      });
+  }
+
   addShowMonthlyNoteSetting(): void {
     new Setting(this.containerEl)
       .setName(t('settings.monthly.show'))
@@ -267,6 +317,19 @@ export class CalendarSettingsTab extends PluginSettingTab {
         textfield.setPlaceholder(DEFAULT_MONTHLY_FORMAT);
         textfield.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ monthlyNoteFormat: value }));
+        });
+      });
+  }
+
+  addMonthlyDotColorSetting(): void {
+    new Setting(this.containerEl)
+      .setName(t('settings.monthly.dotColor'))
+      .setDesc(t('settings.monthly.dotColor.desc'))
+      .addText((textfield) => {
+        textfield.setPlaceholder("#9b59b6");
+        textfield.setValue(this.plugin.options.monthlyDotColor);
+        textfield.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ monthlyDotColor: value || "#9b59b6" }));
         });
       });
   }

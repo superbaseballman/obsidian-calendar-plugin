@@ -3,7 +3,7 @@ import type { TFile } from "obsidian";
 import type { ICalendarSource, IDayMetadata, IDot } from "obsidian-calendar-ui";
 import { get } from "svelte/store";
 
-import { monthlyNotes } from "../stores";
+import { monthlyNotes, settings } from "../stores";
 import { parseMonthlyNoteSections } from "src/io/monthlyNotes";
 
 /**
@@ -26,10 +26,12 @@ async function getDotsForMonthlyNote(
     const dayKey = date.format("DD");
 
     if (sections[dayKey] && sections[dayKey].trim().length > 0) {
+      const currentSettings = get(settings);
+      const dotColor = currentSettings?.monthlyDotColor || "#9b59b6";
       return [
         {
           className: "monthly-task",
-          color: "purple",
+          color: dotColor,
           isFilled: true,
         },
       ];
