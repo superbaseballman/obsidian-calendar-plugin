@@ -88,3 +88,15 @@ svg.hollow.monthly-task {
 .active svg.hollow.monthly-task {
   stroke: var(--text-on-accent) !important;
 }
+
+/* Override .today to use background color instead of font color */
+.day.today {
+  background-color: var(--interactive-accent) !important;
+  color: var(--text-on-accent) !important;
+}
+
+/* Also override when .today is combined with .active */
+.day.today.active {
+  background-color: var(--interactive-accent) !important;
+  color: var(--text-on-accent) !important;
+}
