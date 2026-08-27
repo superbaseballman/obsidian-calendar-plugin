@@ -126,6 +126,15 @@
     canvasDaySchedules = grouped;
   }
 
+  function openCanvasSchedule(schedule: CanvasSchedule) {
+    if (!schedule?.file) {
+      return;
+    }
+    window.app.workspace.getUnpinnedLeaf().openFile(schedule.file, {
+      active: true,
+    });
+  }
+
   function handleDayClick(date: Moment, isMetaPressed: boolean): boolean {
     if (!currentSettings?.showMonthlyNote) {
       return onClickDay(date, isMetaPressed);
@@ -514,7 +523,18 @@
             {displayedMonth.format("YYYY-MM")}-{day}
           </div>
           {#each canvasDaySchedules[day] as schedule}
-            <div class="canvas-schedule-item">
+            <div
+              class="canvas-schedule-item"
+              role="button"
+              tabindex="0"
+              on:click={() => openCanvasSchedule(schedule)}
+              on:keydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openCanvasSchedule(schedule);
+                }
+              }}
+            >
               <span class="canvas-schedule-content">{schedule.content}</span>
             </div>
           {/each}
@@ -618,6 +638,12 @@
   .canvas-schedule-item {
     padding: 3px 0;
     font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .canvas-schedule-item:hover {
+    background: var(--background-modifier-hover);
   }
 
   .canvas-schedule-content {
