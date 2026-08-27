@@ -43,6 +43,13 @@ export const en = {
   'settings.monthly.format.desc': 'Format for monthly note filenames (default: YYYY-MM)',
   'settings.monthly.dotColor': 'Monthly dot color',
   'settings.monthly.dotColor.desc': 'Color for monthly task dots on the calendar (CSS color, e.g. #9b59b6, purple)',
+
+  // Settings - Canvas Schedules
+  'settings.canvasSchedules': 'Canvas Schedule Settings',
+  'settings.canvasSchedules.show': 'Show canvas schedules',
+  'settings.canvasSchedules.show.desc': 'Import schedules from canvas files (dates are read from memos-meta comments)',
+  'settings.canvasSchedules.folder': 'Canvas schedules folder',
+  'settings.canvasSchedules.folder.desc': 'Folder to scan for .canvas files. Leave empty to scan the whole vault',
   
   // Settings - Advanced
   'settings.advanced': 'Advanced Settings',
@@ -64,12 +71,14 @@ export const en = {
   
   // Calendar - Display
   'calendar.title': 'Calendar',
+  'calendar.canvasSchedules': 'Canvas Schedules',
   
   // Calendar - Errors
   'error.dailyNotesFolder': '[Calendar] Failed to find daily notes folder',
   'error.weeklyNotesFolder': '[Calendar] Failed to find weekly notes folder',
   'error.monthlyNotesFolder': '[Calendar] Failed to find monthly notes folder',
   'error.readMonthlyNote': '[Calendar] Failed to read monthly note',
+  'error.canvasSchedules': '[Calendar] Failed to read canvas schedules',
   
   // File Menu
   'fileMenu.open': 'Open',

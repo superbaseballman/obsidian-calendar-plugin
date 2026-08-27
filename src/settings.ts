@@ -30,6 +30,10 @@ export interface ISettings {
   monthlyNoteFormat: string;
   monthlyDotColor: string;
 
+  // Canvas Schedule settings
+  showCanvasSchedules: boolean;
+  canvasSchedulesFolder: string;
+
   localeOverride: ILocaleOverride;
 }
 
@@ -60,6 +64,9 @@ export const defaultSettings = Object.freeze({
   showMonthlyNote: false,
   monthlyNoteFormat: "",
   monthlyDotColor: "#9b59b6",
+
+  showCanvasSchedules: false,
+  canvasSchedulesFolder: "",
 
   localeOverride: "system-default",
 });
@@ -101,6 +108,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addClickActionSettings();
     this.addShowWeeklyNoteSetting();
     this.addShowMonthlyNoteSetting();
+    this.addShowCanvasSchedulesSetting();
 
     if (
       this.plugin.options.showWeeklyNote &&
@@ -124,6 +132,13 @@ export class CalendarSettingsTab extends PluginSettingTab {
       });
       this.addMonthlyNoteFormatSetting();
       this.addMonthlyDotColorSetting();
+    }
+
+    if (this.plugin.options.showCanvasSchedules) {
+      this.containerEl.createEl("h3", {
+        text: t('settings.canvasSchedules'),
+      });
+      this.addCanvasSchedulesFolderSetting();
     }
 
     this.containerEl.createEl("h3", {
@@ -330,6 +345,31 @@ export class CalendarSettingsTab extends PluginSettingTab {
         textfield.setValue(this.plugin.options.monthlyDotColor);
         textfield.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ monthlyDotColor: value || "#9b59b6" }));
+        });
+      });
+  }
+
+  addShowCanvasSchedulesSetting(): void {
+    new Setting(this.containerEl)
+      .setName(t('settings.canvasSchedules.show'))
+      .setDesc(t('settings.canvasSchedules.show.desc'))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.showCanvasSchedules);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ showCanvasSchedules: value }));
+          this.display(); // show/hide canvas schedule settings
+        });
+      });
+  }
+
+  addCanvasSchedulesFolderSetting(): void {
+    new Setting(this.containerEl)
+      .setName(t('settings.canvasSchedules.folder'))
+      .setDesc(t('settings.canvasSchedules.folder.desc'))
+      .addText((textfield) => {
+        textfield.setValue(this.plugin.options.canvasSchedulesFolder);
+        textfield.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ canvasSchedulesFolder: value }));
         });
       });
   }

@@ -13,18 +13,20 @@ import { TRIGGER_ON_OPEN, VIEW_TYPE_CALENDAR } from "src/constants";
 import { tryToCreateDailyNote } from "src/io/dailyNotes";
 import { tryToCreateWeeklyNote } from "src/io/weeklyNotes";
 import { getAllMonthlyNotes, tryToCreateMonthlyNote, getMonthlyNote } from "src/io/monthlyNotes";
+import { isCanvasScheduleFile } from "src/io/canvasSchedules";
 import type { ISettings } from "src/settings";
 import { t } from "./i18n";
 
 import Calendar from "./ui/Calendar.svelte";
 import { showFileMenu } from "./ui/fileMenu";
-import { activeFile, dailyNotes, weeklyNotes, monthlyNotes, settings } from "./ui/stores";
+import { activeFile, dailyNotes, weeklyNotes, monthlyNotes, canvasSchedules, settings } from "./ui/stores";
 import {
   customTagsSource,
   streakSource,
   tasksSource,
   wordCountSource,
   monthlyTasksSource,
+  canvasSchedulesSource,
 } from "./ui/sources";
 
 export default class CalendarView extends ItemView {
@@ -99,6 +101,7 @@ export default class CalendarView extends ItemView {
       wordCountSource,
       tasksSource,
       monthlyTasksSource,
+      canvasSchedulesSource,
     ];
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 
@@ -184,6 +187,9 @@ export default class CalendarView extends ItemView {
     if (this.settings.showMonthlyNote) {
       monthlyNotes.reindex();
     }
+    if (this.settings.showCanvasSchedules) {
+      canvasSchedules.reindex(this.settings);
+    }
     this.updateActiveFile();
   }
 
@@ -204,6 +210,16 @@ export default class CalendarView extends ItemView {
         this.updateActiveFile();
       }
     }
+    if (
+      this.settings.showCanvasSchedules &&
+      isCanvasScheduleFile(file, this.settings)
+    ) {
+      await canvasSchedules.reindex(this.settings);
+      if (this.calendar) {
+        this.calendar.tick();
+        this.calendar.refreshCanvasSchedules();
+      }
+    }
   }
 
   private async onFileModified(file: TFile): Promise<void> {
@@ -216,6 +232,16 @@ export default class CalendarView extends ItemView {
       if (monthlyMatch && this.calendar) {
         this.calendar.tick();
         this.calendar.refreshMonthlyContent();
+      }
+    }
+    if (
+      this.settings.showCanvasSchedules &&
+      isCanvasScheduleFile(file, this.settings)
+    ) {
+      await canvasSchedules.reindex(this.settings);
+      if (this.calendar) {
+        this.calendar.tick();
+        this.calendar.refreshCanvasSchedules();
       }
     }
   }
@@ -236,6 +262,17 @@ export default class CalendarView extends ItemView {
           monthlyNotes.reindex();
           this.calendar.tick();
         }
+      }
+      if (
+        this.settings.showCanvasSchedules &&
+        isCanvasScheduleFile(file, this.settings)
+      ) {
+        canvasSchedules.reindex(this.settings).then(() => {
+          if (this.calendar) {
+            this.calendar.tick();
+            this.calendar.refreshCanvasSchedules();
+          }
+        });
       }
     }
   }

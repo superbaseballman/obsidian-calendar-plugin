@@ -18,7 +18,15 @@
     tryToCreateMonthlyNote,
     saveDaySection,
   } from "src/io/monthlyNotes";
-  import { activeFile, dailyNotes, settings, weeklyNotes, monthlyNotes } from "./stores";
+  import {
+    activeFile,
+    dailyNotes,
+    settings,
+    weeklyNotes,
+    monthlyNotes,
+    canvasSchedules,
+  } from "./stores";
+  import type { CanvasSchedule } from "src/io/canvasSchedules";
   import { t } from "../i18n";
 
   // Component for MarkdownRenderer to properly track lifecycle
@@ -46,6 +54,7 @@
 
   // Monthly note content rendering
   let dayContents: Record<string, string> = {};
+  let canvasDaySchedules: Record<string, CanvasSchedule[]> = {};
 
   // Editing state
   let editingDay: string | null = null;
@@ -66,6 +75,15 @@
     }
   }
 
+  $: {
+    const schedules = $canvasSchedules;
+    if (displayedMonth && currentSettings?.showCanvasSchedules && schedules) {
+      loadCanvasSchedules(displayedMonth, schedules);
+    } else if (!currentSettings?.showCanvasSchedules) {
+      canvasDaySchedules = {};
+    }
+  }
+
   // Update CSS variable for monthly dot color
   $: if (currentSettings?.monthlyDotColor && calendarWrapper) {
     calendarWrapper.style.setProperty("--monthly-dot-color", currentSettings.monthlyDotColor);
@@ -73,6 +91,10 @@
 
   $: daysWithTasks = Object.keys(dayContents)
     .filter((d) => dayContents[d] && dayContents[d].trim().length > 0)
+    .sort((a, b) => parseInt(a) - parseInt(b));
+
+  $: daysWithCanvasSchedules = Object.keys(canvasDaySchedules)
+    .filter((day) => canvasDaySchedules[day]?.length > 0)
     .sort((a, b) => parseInt(a) - parseInt(b));
 
   async function loadMonthTasks(date: Moment) {
@@ -88,6 +110,20 @@
     } else {
       dayContents = {};
     }
+  }
+
+  function loadCanvasSchedules(
+    date: Moment,
+    schedules: Record<string, CanvasSchedule[]>
+  ) {
+    const monthKey = date.format("YYYY-MM");
+    const grouped: Record<string, CanvasSchedule[]> = {};
+    Object.entries(schedules).forEach(([dateKey, daySchedules]) => {
+      if (dateKey.startsWith(`${monthKey}-`)) {
+        grouped[dateKey.slice(-2)] = daySchedules;
+      }
+    });
+    canvasDaySchedules = grouped;
   }
 
   function handleDayClick(date: Moment, isMetaPressed: boolean): boolean {
@@ -233,6 +269,16 @@
   export function refreshMonthlyContent() {
     if (displayedMonth) {
       loadMonthTasks(displayedMonth);
+    }
+  }
+
+  export async function refreshCanvasSchedules() {
+    if (!currentSettings?.showCanvasSchedules) {
+      canvasDaySchedules = {};
+      return;
+    }
+    if (displayedMonth && $canvasSchedules) {
+      loadCanvasSchedules(displayedMonth, $canvasSchedules);
     }
   }
 
@@ -385,6 +431,9 @@
     if (settings.showMonthlyNote) {
       monthlyNotes.reindex();
     }
+    if (settings.showCanvasSchedules) {
+      canvasSchedules.reindex(settings);
+    }
     return window.moment();
   }
 
@@ -455,6 +504,25 @@
       </div>
     {/if}
   {/if}
+
+  {#if currentSettings?.showCanvasSchedules && daysWithCanvasSchedules.length > 0}
+    <div class="canvas-schedules-section">
+      <div class="canvas-schedules-title">{t('calendar.canvasSchedules')}</div>
+      {#each daysWithCanvasSchedules as day}
+        <div class="canvas-schedule-day">
+          <div class="canvas-schedule-day-label">
+            {displayedMonth.format("YYYY-MM")}-{day}
+          </div>
+          {#each canvasDaySchedules[day] as schedule}
+            <div class="canvas-schedule-item">
+              <span class="canvas-schedule-time">{schedule.time}</span>
+              <span class="canvas-schedule-content">{schedule.content}</span>
+            </div>
+          {/each}
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -514,6 +582,56 @@
     font-weight: 700;
     color: var(--text-accent);
     margin-bottom: 6px;
+  }
+
+  .canvas-schedules-section {
+    margin-top: 8px;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .canvas-schedules-title {
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-accent);
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .canvas-schedule-day {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .canvas-schedule-day:last-child {
+    border-bottom: none;
+  }
+
+  .canvas-schedule-day-label {
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .canvas-schedule-item {
+    display: flex;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 13px;
+  }
+
+  .canvas-schedule-time {
+    flex: 0 0 42px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .canvas-schedule-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   /* Markdown content rendering */

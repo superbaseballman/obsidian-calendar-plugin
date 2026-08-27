@@ -46,6 +46,13 @@ export const zh: Record<TranslationKey, string> = {
   'settings.monthly.dotColor': '月记小点颜色',
   'settings.monthly.dotColor.desc': '日历上月记任务小点的颜色（CSS 颜色值，如 #9b59b6、purple）',
   
+  // Settings - Canvas Schedules
+  'settings.canvasSchedules': 'Canvas 日程设置',
+  'settings.canvasSchedules.show': '显示 Canvas 日程',
+  'settings.canvasSchedules.show.desc': '从 canvas 文件导入日程（日期从 memos-meta 注释中读取）',
+  'settings.canvasSchedules.folder': 'Canvas 日程文件夹',
+  'settings.canvasSchedules.folder.desc': '扫描 .canvas 文件的文件夹。留空则扫描整个库',
+  
   // Settings - Advanced
   'settings.advanced': '高级设置',
   'settings.locale': '覆盖区域设置：',
@@ -66,12 +73,14 @@ export const zh: Record<TranslationKey, string> = {
   
   // Calendar - Display
   'calendar.title': '日历',
+  'calendar.canvasSchedules': 'Canvas 日程',
   
   // Calendar - Errors
   'error.dailyNotesFolder': '[Calendar] 找不到日记文件夹',
   'error.weeklyNotesFolder': '[Calendar] 找不到周记文件夹',
   'error.monthlyNotesFolder': '[Calendar] 找不到月记文件夹',
   'error.readMonthlyNote': '[Calendar] 读取月记失败',
+  'error.canvasSchedules': '[Calendar] 读取 Canvas 日程失败',
   
   // File Menu
   'fileMenu.open': '打开',

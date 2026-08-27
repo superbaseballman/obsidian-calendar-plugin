@@ -7,6 +7,8 @@ import { writable } from "svelte/store";
 
 import { defaultSettings, ISettings } from "src/settings";
 import { getAllMonthlyNotes } from "src/io/monthlyNotes";
+import { getAllCanvasSchedules } from "src/io/canvasSchedules";
+import type { CanvasSchedule } from "src/io/canvasSchedules";
 import { t } from "../i18n";
 
 import { getDateUIDFromFile } from "./utils";
@@ -76,10 +78,32 @@ function createMonthlyNotesStore() {
   };
 }
 
+function createCanvasSchedulesStore() {
+  let hasError = false;
+  const store = writable<Record<string, CanvasSchedule[]>>(null);
+  return {
+    reindex: async (settings: ISettings) => {
+      try {
+        const schedules = await getAllCanvasSchedules(settings);
+        store.set(schedules);
+        hasError = false;
+      } catch (err) {
+        if (!hasError) {
+          console.log(t('error.canvasSchedules'), err);
+        }
+        store.set({});
+        hasError = true;
+      }
+    },
+    ...store,
+  };
+}
+
 export const settings = writable<ISettings>(defaultSettings);
 export const dailyNotes = createDailyNotesStore();
 export const weeklyNotes = createWeeklyNotesStore();
 export const monthlyNotes = createMonthlyNotesStore();
+export const canvasSchedules = createCanvasSchedulesStore();
 
 function createSelectedFileStore() {
   const store = writable<string>(null);
