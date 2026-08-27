@@ -515,7 +515,6 @@
           </div>
           {#each canvasDaySchedules[day] as schedule}
             <div class="canvas-schedule-item">
-              <span class="canvas-schedule-time">{schedule.time}</span>
               <span class="canvas-schedule-content">{schedule.content}</span>
             </div>
           {/each}
@@ -617,16 +616,8 @@
   }
 
   .canvas-schedule-item {
-    display: flex;
-    gap: 8px;
     padding: 3px 0;
     font-size: 13px;
-  }
-
-  .canvas-schedule-time {
-    flex: 0 0 42px;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
   }
 
   .canvas-schedule-content {

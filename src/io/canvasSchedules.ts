@@ -11,8 +11,6 @@ export interface CanvasSchedule {
   id: string;
   /** The date parsed from the memos-meta comment. */
   date: Moment;
-  /** Time part (HH:mm) parsed from the memos-meta comment, if any. */
-  time: string;
   /** The schedule content (task text with checkbox prefix stripped). */
   content: string;
   /** The canvas file this schedule came from. */
@@ -94,7 +92,6 @@ export function parseCanvasContent(
     schedules.push({
       id: String(node.id ?? ""),
       date,
-      time: date.format("HH:mm"),
       content: scheduleLines.join("\n"),
       file,
     });
