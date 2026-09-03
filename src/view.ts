@@ -203,8 +203,8 @@ export default class CalendarView extends ItemView {
       this.updateActiveFile();
     }
     if (this.settings.showMonthlyNote) {
-      // Check if it's a monthly note by basename pattern
-      const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+      // Check if it's a yearly monthly-note file by basename pattern
+      const monthlyMatch = file.basename.match(/^\d{4}$/);
       if (monthlyMatch) {
         monthlyNotes.reindex();
         this.updateActiveFile();
@@ -228,7 +228,7 @@ export default class CalendarView extends ItemView {
       this.calendar.tick();
     }
     if (this.settings.showMonthlyNote) {
-      const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+      const monthlyMatch = file.basename.match(/^\d{4}$/);
       if (monthlyMatch && this.calendar) {
         this.calendar.tick();
         this.calendar.refreshMonthlyContent();
@@ -257,7 +257,7 @@ export default class CalendarView extends ItemView {
         this.calendar.tick();
       }
       if (this.settings.showMonthlyNote) {
-        const monthlyMatch = file.basename.match(/^\d{4}-\d{2}/);
+        const monthlyMatch = file.basename.match(/^\d{4}$/);
         if (monthlyMatch) {
           monthlyNotes.reindex();
           this.calendar.tick();

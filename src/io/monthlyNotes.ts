@@ -6,6 +6,7 @@ import type { ISettings } from "src/settings";
 import { createConfirmationDialog } from "src/ui/modal";
 
 export const DEFAULT_MONTHLY_FORMAT = "YYYY-MM";
+export const DEFAULT_YEARLY_FORMAT = "YYYY";
 
 /**
  * Get the folder path for monthly notes.
@@ -24,7 +25,7 @@ export function getMonthlyNoteFormat(settings: ISettings): string {
 }
 
 /**
- * Get all monthly notes from the vault.
+ * Get all yearly files used to store monthly notes from the vault.
  */
 export function getAllMonthlyNotes(): Record<string, TFile> {
   const { vault } = window.app;
@@ -35,8 +36,8 @@ export function getAllMonthlyNotes(): Record<string, TFile> {
     if (folder && !file.path.startsWith(folder)) {
       return;
     }
-    // Match YYYY-MM format exactly (not YYYY-MM-DD daily notes)
-    const match = file.basename.match(/^(\d{4}-\d{2})$/);
+    // Match YYYY format exactly (not YYYY-MM monthly notes or daily notes)
+    const match = file.basename.match(/^(\d{4})$/);
     if (match) {
       notes[match[1]] = file;
     }
@@ -52,8 +53,8 @@ export function getMonthlyNote(
   date: Moment,
   monthlyNotes: Record<string, TFile>
 ): TFile | null {
-  const monthKey = date.format("YYYY-MM");
-  return monthlyNotes[monthKey] || null;
+  const yearKey = date.format(DEFAULT_YEARLY_FORMAT);
+  return monthlyNotes[yearKey] || null;
 }
 
 /**
@@ -65,24 +66,35 @@ export function getMonthlyNote(
  *
  * Returns a map of day -> tasks array
  */
-export function parseMonthlyNoteTasks(content: string): Record<string, string[]> {
+export function parseMonthlyNoteTasks(
+  content: string,
+  monthKey?: string
+): Record<string, string[]> {
   const tasks: Record<string, string[]> = {};
   const lines = content.split("\n");
+  let currentMonth = "";
   let currentDay = "";
 
   for (const line of lines) {
+    const monthMatch = line.match(/^#\s+(\d{4}-\d{2})(?:\s|$)/);
+    if (monthMatch) {
+      currentMonth = monthMatch[1];
+      currentDay = "";
+      continue;
+    }
+
     // Match day header: ## 01, ## 1, ## 01-some text, etc.
     const dayMatch = line.match(/^##\s+(\d{1,2})(?:\s|$)/);
     if (dayMatch) {
       currentDay = dayMatch[1].padStart(2, "0");
-      if (!tasks[currentDay]) {
+      if ((!monthKey || currentMonth === monthKey) && !tasks[currentDay]) {
         tasks[currentDay] = [];
       }
       continue;
     }
 
     // Match task items: - [ ] task or - [x] task or - task
-    if (currentDay && line.match(/^\s*[-*]\s+/)) {
+    if (currentDay && (!monthKey || currentMonth === monthKey) && line.match(/^\s*[-*]\s+/)) {
       const taskMatch = line.match(/^\s*[-*]\s+(?:\[[ xX]\]\s+)?(.+)/);
       if (taskMatch) {
         tasks[currentDay].push(taskMatch[1].trim());
@@ -97,17 +109,32 @@ export function parseMonthlyNoteTasks(content: string): Record<string, string[]>
  * Parse day sections from monthly note content with full markdown.
  * Returns a map of day -> raw markdown content for that section.
  */
-export function parseMonthlyNoteSections(content: string): Record<string, string> {
+export function parseMonthlyNoteSections(
+  content: string,
+  monthKey?: string
+): Record<string, string> {
   const sections: Record<string, string> = {};
   const lines = content.split("\n");
+  let currentMonth = "";
   let currentDay = "";
   let currentLines: string[] = [];
 
   for (const line of lines) {
+    const monthMatch = line.match(/^#\s+(\d{4}-\d{2})(?:\s|$)/);
+    if (monthMatch) {
+      if (currentDay && currentLines.length > 0 && (!monthKey || currentMonth === monthKey)) {
+        sections[currentDay] = currentLines.join("\n").trim();
+      }
+      currentMonth = monthMatch[1];
+      currentDay = "";
+      currentLines = [];
+      continue;
+    }
+
     const dayMatch = line.match(/^##\s+(\d{1,2})(?:\s|$)/);
     if (dayMatch) {
       // Save previous day's content
-      if (currentDay && currentLines.length > 0) {
+      if (currentDay && currentLines.length > 0 && (!monthKey || currentMonth === monthKey)) {
         sections[currentDay] = currentLines.join("\n").trim();
       }
       currentDay = dayMatch[1].padStart(2, "0");
@@ -117,7 +144,7 @@ export function parseMonthlyNoteSections(content: string): Record<string, string
 
     // Stop at next h1 or h2 that's not a day
     if (line.match(/^#\s/) || (line.match(/^##\s/) && !line.match(/^##\s+\d{1,2}/))) {
-      if (currentDay && currentLines.length > 0) {
+      if (currentDay && currentLines.length > 0 && (!monthKey || currentMonth === monthKey)) {
         sections[currentDay] = currentLines.join("\n").trim();
       }
       currentDay = "";
@@ -125,13 +152,13 @@ export function parseMonthlyNoteSections(content: string): Record<string, string
       continue;
     }
 
-    if (currentDay) {
+    if (currentDay && (!monthKey || currentMonth === monthKey)) {
       currentLines.push(line);
     }
   }
 
   // Save last day's content
-  if (currentDay && currentLines.length > 0) {
+  if (currentDay && currentLines.length > 0 && (!monthKey || currentMonth === monthKey)) {
     sections[currentDay] = currentLines.join("\n").trim();
   }
 
@@ -176,28 +203,34 @@ export async function tryToCreateMonthlyNote(
 ): Promise<void> {
   const { workspace, vault } = window.app;
   const folder = getMonthlyNoteFolder();
-  const format = getMonthlyNoteFormat(settings);
-  const filename = date.format(format);
+  const filename = date.format(DEFAULT_YEARLY_FORMAT);
+  const monthTitle = date.format(DEFAULT_MONTHLY_FORMAT);
   const filePath = folder ? `${folder}/${filename}.md` : `${filename}.md`;
 
   const createFile = async () => {
-    // Create initial content with month title
-    const content = `# ${filename}\n`;
-    const newFile = await vault.create(filePath, content);
+    let file = vault.getAbstractFileByPath(filePath) as TFile | null;
+    if (file) {
+      const content = await vault.read(file);
+      if (!content.match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`, "m"))) {
+        await vault.modify(file, `${content.trimEnd()}\n\n# ${monthTitle}\n`);
+      }
+    } else {
+      file = await vault.create(filePath, `# ${monthTitle}\n`);
+    }
 
     const leaf = inNewSplit
       ? workspace.splitActiveLeaf()
       : workspace.getUnpinnedLeaf();
 
-    await leaf.openFile(newFile, { active: true });
-    cb?.(newFile);
+    await leaf.openFile(file, { active: true });
+    cb?.(file);
   };
 
   if (settings.shouldConfirmBeforeCreate) {
     createConfirmationDialog({
       cta: "Create",
       onAccept: createFile,
-      text: `Monthly note ${filename} does not exist. Would you like to create it?`,
+      text: `Yearly note ${filename} does not exist. Would you like to create it?`,
       title: "New Monthly Note",
     });
   } else {
@@ -226,6 +259,7 @@ export async function saveMonthlyNoteTasks(
  */
 export async function saveDaySection(
   file: TFile,
+  month: string,
   day: string,
   newContent: string
 ): Promise<void> {
@@ -234,13 +268,21 @@ export async function saveDaySection(
   const lines = content.split("\n");
   const dayPadded = day.padStart(2, "0");
 
-  // Find the day section
+  // Find the day section within the requested month
   let startLine = -1;
   let endLine = lines.length;
+  let monthLine = -1;
 
   for (let i = 0; i < lines.length; i++) {
+    if (lines[i].match(new RegExp(`^#\\s+${month}(?:\\s|$)`))) {
+      monthLine = i;
+      continue;
+    }
+    if (monthLine >= 0 && lines[i].match(/^#\s/)) {
+      break;
+    }
     const dayMatch = lines[i].match(/^##\s+(\d{1,2})(?:\s|$)/);
-    if (dayMatch) {
+    if (monthLine >= 0 && dayMatch) {
       const foundDay = dayMatch[1].padStart(2, "0");
       if (foundDay === dayPadded) {
         startLine = i;
@@ -256,18 +298,29 @@ export async function saveDaySection(
     }
   }
 
+  const newLines = newContent.trim() ? newContent.trim().split("\n") : [];
   if (startLine >= 0) {
     // Replace existing section: keep the header line, replace content after it
     const before = lines.slice(0, startLine + 1);
     const after = lines.slice(endLine);
-    const newLines = newContent.trim() ? newContent.trim().split("\n") : [];
     // Ensure blank line between sections
     const result = [...before, ...newLines, ...(after.length > 0 && after[0] !== "" ? [""] : []), ...after];
     await vault.modify(file, result.join("\n"));
+  } else if (monthLine >= 0) {
+    const newSection = [`## ${dayPadded}`, ...newLines, ""];
+    const nextMonthLine = lines.findIndex(
+      (line, index) => index > monthLine && line.match(/^#\s/)
+    );
+    const insertAt = nextMonthLine >= 0 ? nextMonthLine : lines.length;
+    const result = [
+      ...lines.slice(0, insertAt),
+      ...newSection,
+      ...lines.slice(insertAt),
+    ];
+    await vault.modify(file, result.join("\n"));
   } else {
-    // Append new section at the end
-    const newSection = [`## ${dayPadded}`, ...newContent.trim().split("\n"), ""];
-    const newFileContent = content.trimEnd() + "\n\n" + newSection.join("\n");
-    await vault.modify(file, newFileContent.trimEnd() + "\n");
+    // Append a new month and day section to the yearly file.
+    const newSection = [`# ${month}`, "", `## ${dayPadded}`, ...newLines, ""];
+    await vault.modify(file, content.trimEnd() + "\n\n" + newSection.join("\n"));
   }
 }

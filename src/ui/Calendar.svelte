@@ -102,7 +102,7 @@
     if (monthFile) {
       try {
         const content = await window.app.vault.cachedRead(monthFile);
-        dayContents = parseMonthlyNoteSections(content);
+        dayContents = parseMonthlyNoteSections(content, displayedMonth.format("YYYY-MM"));
       } catch (err) {
         console.log(t('error.readMonthlyNote'), err);
         dayContents = {};
@@ -169,22 +169,31 @@
     const { workspace, vault } = window.app;
     
     // Get or create monthly note
-    let file = getMonthlyNote(displayedMonth, $monthlyNotes);
+    let file = getMonthlyNote(date, $monthlyNotes);
     if (!file) {
       await tryToCreateMonthlyNote(displayedMonth, false, currentSettings);
       monthlyNotes.reindex();
-      file = getMonthlyNote(displayedMonth, $monthlyNotes);
+      file = getMonthlyNote(date, $monthlyNotes);
     }
     
     if (file) {
       // Ensure the day section exists, create it if not
       const dayStr = date.format("DD");
+      const monthTitle = date.format("YYYY-MM");
       let content = await vault.cachedRead(file);
       const lines = content.split("\n");
       let targetLine = -1;
+      let monthLine = -1;
       
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].match(new RegExp(`^##\\s+${dayStr}`))) {
+        if (lines[i].match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`))) {
+          monthLine = i;
+          continue;
+        }
+        if (monthLine >= 0 && lines[i].match(/^#\s/)) {
+          break;
+        }
+        if (monthLine >= 0 && lines[i].match(new RegExp(`^##\\s+${dayStr}(?:\\s|$)`))) {
           targetLine = i;
           break;
         }
@@ -192,13 +201,21 @@
       
       // Day section doesn't exist — append it
       if (targetLine < 0) {
-        const newSection = `\n\n## ${dayStr}\n`;
+        const newSection = `${monthLine >= 0 ? "" : `\n\n# ${monthTitle}\n`}\n## ${dayStr}\n`;
         await vault.modify(file, content.trimEnd() + newSection);
         // Re-read to get updated content and find the new line
         content = await vault.cachedRead(file);
         const updatedLines = content.split("\n");
+        monthLine = -1;
         for (let i = 0; i < updatedLines.length; i++) {
-          if (updatedLines[i].match(new RegExp(`^##\\s+${dayStr}`))) {
+          if (updatedLines[i].match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`))) {
+            monthLine = i;
+            continue;
+          }
+          if (monthLine >= 0 && updatedLines[i].match(/^#\s/)) {
+            break;
+          }
+          if (monthLine >= 0 && updatedLines[i].match(new RegExp(`^##\\s+${dayStr}(?:\\s|$)`))) {
             targetLine = i;
             break;
           }
@@ -263,7 +280,7 @@
     if (!monthFile || isCancelling) return;
     const newContent = editText.trim();
     try {
-      await saveDaySection(monthFile, day, newContent);
+      await saveDaySection(monthFile, displayedMonth.format("YYYY-MM"), day, newContent);
       // Update local state immediately
       dayContents[day] = newContent;
       dayContents = { ...dayContents };

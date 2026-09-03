@@ -22,7 +22,7 @@ async function getDotsForMonthlyNote(
 
   try {
     const content = await window.app.vault.cachedRead(file);
-    const sections = parseMonthlyNoteSections(content);
+    const sections = parseMonthlyNoteSections(content, monthKey);
     const dayKey = date.format("DD");
 
     if (sections[dayKey] && sections[dayKey].trim().length > 0) {
