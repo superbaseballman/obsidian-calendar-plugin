@@ -380,7 +380,20 @@
       node.empty();
       return;
     }
+    const sourcePath = monthFile.path;
+    const handleInternalLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const link = target.closest("a.internal-link");
+      const linkText = link?.getAttribute("data-href") || link?.getAttribute("href");
+      if (!link || !linkText) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      window.app.workspace.openLinkText(linkText, sourcePath, false);
+    };
     node.empty();
+    node.addEventListener("click", handleInternalLinkClick);
     // Unload and reload component to clean up previous embedded content handlers
     markdownComponent.unload();
     markdownComponent.load();
@@ -401,6 +414,9 @@
         MarkdownRenderer.renderMarkdown(newContent, node, monthFile.path, markdownComponent).then(() => {
           resolveImagePaths(node);
         });
+      },
+      destroy() {
+        node.removeEventListener("click", handleInternalLinkClick);
       },
     };
   }
