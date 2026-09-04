@@ -89,6 +89,18 @@ svg.hollow.monthly-task {
   stroke: var(--text-on-accent) !important;
 }
 
+svg.filled.canvas-schedule {
+  fill: var(--canvas-schedule-dot-color, #3498db) !important;
+}
+
+.active svg.filled.canvas-schedule {
+  fill: var(--text-on-accent) !important;
+}
+
+svg.filled.canvas-schedule.active {
+  fill: var(--text-on-accent) !important;
+}
+
 /* Override .today to use background color instead of font color */
 .day.today {
   background-color: var(--interactive-accent) !important;

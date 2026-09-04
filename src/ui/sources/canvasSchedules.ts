@@ -27,7 +27,7 @@ async function getDotsForCanvasSchedules(date: Moment): Promise<IDot[]> {
     {
       className: "canvas-schedule",
       color: currentSettings?.canvasSchedulesDotColor || "#3498db",
-      isFilled: false,
+      isFilled: true,
     },
   ];
 }

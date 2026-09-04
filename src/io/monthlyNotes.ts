@@ -212,7 +212,18 @@ export async function tryToCreateMonthlyNote(
     if (file) {
       const content = await vault.read(file);
       if (!content.match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`, "m"))) {
-        await vault.modify(file, `${content.trimEnd()}\n\n# ${monthTitle}\n`);
+        const lines = content.split("\n");
+        const targetMonth = monthTitle;
+        const nextMonthLine = lines.findIndex((line) => {
+          const match = line.match(/^#\s+(\d{4}-\d{2})(?:\s|$)/);
+          return match ? match[1] > targetMonth : false;
+        });
+        const newSection = [`# ${monthTitle}`, ""];
+        const insertAt = nextMonthLine >= 0 ? nextMonthLine : lines.length;
+        await vault.modify(
+          file,
+          [...lines.slice(0, insertAt), ...newSection, ...lines.slice(insertAt)].join("\n")
+        );
       }
     } else {
       file = await vault.create(filePath, `# ${monthTitle}\n`);
@@ -268,31 +279,26 @@ export async function saveDaySection(
   const lines = content.split("\n");
   const dayPadded = day.padStart(2, "0");
 
-  // Find the day section within the requested month
+  // Find the requested month first, then limit day-section changes to its range.
+  const monthPattern = new RegExp(`^#\\s+${month}(?:\\s|$)`);
+  const monthLine = lines.findIndex((line) => monthPattern.test(line));
   let startLine = -1;
   let endLine = lines.length;
-  let monthLine = -1;
 
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].match(new RegExp(`^#\\s+${month}(?:\\s|$)`))) {
-      monthLine = i;
-      continue;
-    }
-    if (monthLine >= 0 && lines[i].match(/^#\s/)) {
-      break;
-    }
-    const dayMatch = lines[i].match(/^##\s+(\d{1,2})(?:\s|$)/);
-    if (monthLine >= 0 && dayMatch) {
-      const foundDay = dayMatch[1].padStart(2, "0");
-      if (foundDay === dayPadded) {
+  if (monthLine >= 0) {
+    const nextMonthLine = lines.findIndex(
+      (line, index) => index > monthLine && /^#\s/.test(line)
+    );
+    const monthEndLine = nextMonthLine >= 0 ? nextMonthLine : lines.length;
+
+    for (let i = monthLine + 1; i < monthEndLine; i++) {
+      const dayMatch = lines[i].match(/^##\s+(\d{1,2})(?:\s|$)/);
+      if (dayMatch && dayMatch[1].padStart(2, "0") === dayPadded) {
         startLine = i;
-        // Find the end of this section (next ## or # header)
-        for (let j = i + 1; j < lines.length; j++) {
-          if (lines[j].match(/^##\s/) || lines[j].match(/^#\s/)) {
-            endLine = j;
-            break;
-          }
-        }
+        const nextDayOffset = lines.slice(i + 1, monthEndLine).findIndex(
+          (line) => /^##\s/.test(line)
+        );
+        endLine = nextDayOffset >= 0 ? i + 1 + nextDayOffset : monthEndLine;
         break;
       }
     }
@@ -308,10 +314,16 @@ export async function saveDaySection(
     await vault.modify(file, result.join("\n"));
   } else if (monthLine >= 0) {
     const newSection = [`## ${dayPadded}`, ...newLines, ""];
-    const nextMonthLine = lines.findIndex(
-      (line, index) => index > monthLine && line.match(/^#\s/)
+    const monthEndLine = lines.findIndex(
+      (line, index) => index > monthLine && /^#\s/.test(line)
     );
-    const insertAt = nextMonthLine >= 0 ? nextMonthLine : lines.length;
+    const monthEnd = monthEndLine >= 0 ? monthEndLine : lines.length;
+    const nextDayLine = lines.findIndex((line, index) => {
+      if (index <= monthLine || index >= monthEnd) return false;
+      const dayMatch = line.match(/^##\s+(\d{1,2})(?:\s|$)/);
+      return dayMatch ? parseInt(dayMatch[1], 10) > parseInt(dayPadded, 10) : false;
+    });
+    const insertAt = nextDayLine >= 0 ? nextDayLine : monthEnd;
     const result = [
       ...lines.slice(0, insertAt),
       ...newSection,

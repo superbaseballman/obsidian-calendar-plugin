@@ -91,6 +91,13 @@
     calendarWrapper.style.setProperty("--monthly-dot-color", currentSettings.monthlyDotColor);
   }
 
+  $: if (currentSettings?.canvasSchedulesDotColor && calendarWrapper) {
+    calendarWrapper.style.setProperty(
+      "--canvas-schedule-dot-color",
+      currentSettings.canvasSchedulesDotColor
+    );
+  }
+
   $: daysWithTasks = Object.keys(dayContents)
     .filter((d) => dayContents[d] && dayContents[d].trim().length > 0)
     .sort((a, b) => parseInt(a) - parseInt(b));
@@ -193,43 +200,72 @@
       let content = await vault.cachedRead(file);
       const lines = content.split("\n");
       let targetLine = -1;
-      let monthLine = -1;
-      
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`))) {
-          monthLine = i;
-          continue;
-        }
-        if (monthLine >= 0 && lines[i].match(/^#\s/)) {
-          break;
-        }
-        if (monthLine >= 0 && lines[i].match(new RegExp(`^##\\s+${dayStr}(?:\\s|$)`))) {
-          targetLine = i;
-          break;
-        }
+      const monthLine = lines.findIndex((line) =>
+        new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`).test(line)
+      );
+      const nextMonthLine = lines.findIndex(
+        (line, index) => index > monthLine && /^#\s/.test(line)
+      );
+      const monthEndLine = nextMonthLine >= 0 ? nextMonthLine : lines.length;
+
+      if (monthLine >= 0) {
+        targetLine = lines.findIndex(
+          (line, index) =>
+            index > monthLine &&
+            index < monthEndLine &&
+            new RegExp(`^##\\s+${dayStr}(?:\\s|$)`).test(line)
+        );
       }
       
-      // Day section doesn't exist — append it
+      // Day section doesn't exist — insert it inside the requested month.
       if (targetLine < 0) {
-        const newSection = `${monthLine >= 0 ? "" : `\n\n# ${monthTitle}\n`}\n## ${dayStr}\n`;
-        await vault.modify(file, content.trimEnd() + newSection);
+        const newSection = monthLine >= 0
+          ? [`## ${dayStr}`, ""]
+          : [`# ${monthTitle}`, "", `## ${dayStr}`, ""];
+        const nextDayLine = monthLine >= 0
+          ? lines.findIndex((line, index) => {
+              if (index <= monthLine || index >= monthEndLine) return false;
+              const dayMatch = line.match(/^##\s+(\d{1,2})(?:\s|$)/);
+              return dayMatch ? parseInt(dayMatch[1], 10) > parseInt(dayStr, 10) : false;
+            })
+          : -1;
+        const nextMonthLineForInsert = monthLine < 0
+          ? lines.findIndex((line) => {
+              const monthMatch = line.match(/^#\s+(\d{4}-\d{2})(?:\s|$)/);
+              return monthMatch ? monthMatch[1] > monthTitle : false;
+            })
+          : -1;
+        const insertAt = nextDayLine >= 0
+          ? nextDayLine
+          : monthLine >= 0
+            ? monthEndLine
+            : nextMonthLineForInsert >= 0
+              ? nextMonthLineForInsert
+              : lines.length;
+        const result = [
+          ...lines.slice(0, insertAt),
+          ...newSection,
+          ...lines.slice(insertAt),
+        ];
+        await vault.modify(file, result.join("\n"));
         // Re-read to get updated content and find the new line
         content = await vault.cachedRead(file);
         const updatedLines = content.split("\n");
-        monthLine = -1;
-        for (let i = 0; i < updatedLines.length; i++) {
-          if (updatedLines[i].match(new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`))) {
-            monthLine = i;
-            continue;
-          }
-          if (monthLine >= 0 && updatedLines[i].match(/^#\s/)) {
-            break;
-          }
-          if (monthLine >= 0 && updatedLines[i].match(new RegExp(`^##\\s+${dayStr}(?:\\s|$)`))) {
-            targetLine = i;
-            break;
-          }
-        }
+        const updatedMonthLine = updatedLines.findIndex((line) =>
+          new RegExp(`^#\\s+${monthTitle}(?:\\s|$)`).test(line)
+        );
+        const updatedNextMonthLine = updatedLines.findIndex(
+          (line, index) => index > updatedMonthLine && /^#\s/.test(line)
+        );
+        const updatedMonthEndLine = updatedNextMonthLine >= 0
+          ? updatedNextMonthLine
+          : updatedLines.length;
+        targetLine = updatedLines.findIndex(
+          (line, index) =>
+            index > updatedMonthLine &&
+            index < updatedMonthEndLine &&
+            new RegExp(`^##\\s+${dayStr}(?:\\s|$)`).test(line)
+        );
       }
       
       const leaf = workspace.getUnpinnedLeaf();
