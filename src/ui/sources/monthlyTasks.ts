@@ -4,7 +4,7 @@ import type { ICalendarSource, IDayMetadata, IDot } from "obsidian-calendar-ui";
 import { get } from "svelte/store";
 
 import { monthlyNotes, settings } from "../stores";
-import { parseMonthlyNoteSections } from "src/io/monthlyNotes";
+import { getMonthlyNote, parseMonthlyNoteSections } from "src/io/monthlyNotes";
 
 /**
  * Check if a date's day has any content in the monthly note.
@@ -14,7 +14,7 @@ async function getDotsForMonthlyNote(
   monthlyNotesMap: Record<string, TFile>
 ): Promise<IDot[]> {
   const monthKey = date.format("YYYY-MM");
-  const file = monthlyNotesMap[monthKey];
+  const file = getMonthlyNote(date, monthlyNotesMap);
 
   if (!file) {
     return [];
