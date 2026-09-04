@@ -3,6 +3,7 @@
 <script lang="ts">
   import type { Moment } from "moment";
   import type { TFile } from "obsidian";
+  import { getDailyNote } from "obsidian-daily-notes-interface";
   import { Component, MarkdownRenderer } from "obsidian";
   import {
     Calendar as CalendarBase,
@@ -28,6 +29,7 @@
   } from "./stores";
   import type { CanvasSchedule } from "src/io/canvasSchedules";
   import { t } from "../i18n";
+  import { DateActionModal } from "./modal";
 
   // Component for MarkdownRenderer to properly track lifecycle
   // Must call load() so embedded content (images, etc.) registers properly
@@ -138,6 +140,14 @@
   function handleDayClick(date: Moment, isMetaPressed: boolean): boolean {
     if (!currentSettings?.showMonthlyNote) {
       return onClickDay(date, isMetaPressed);
+    }
+
+    if (!getDailyNote(date, $dailyNotes)) {
+      new DateActionModal(window.app, date, {
+        onOpenDailyNote: (selectedDate) => onClickDay(selectedDate, isMetaPressed),
+        onAddItem: openMonthlyNoteForEdit,
+      }).open();
+      return false;
     }
 
     const action = currentSettings.leftClickAction || "daily";

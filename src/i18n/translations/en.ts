@@ -39,8 +39,6 @@ export const en = {
   'settings.monthly': 'Monthly Note Settings',
   'settings.monthly.show': 'Show monthly notes',
   'settings.monthly.show.desc': 'Enable monthly note support (format: YYYY-MM)',
-  'settings.monthly.format': 'Monthly note format',
-  'settings.monthly.format.desc': 'Format for monthly note filenames (default: YYYY-MM)',
   'settings.monthly.dotColor': 'Monthly dot color',
   'settings.monthly.dotColor.desc': 'Color for monthly task dots on the calendar (CSS color, e.g. #9b59b6, purple)',
 
@@ -50,6 +48,8 @@ export const en = {
   'settings.canvasSchedules.show.desc': 'Import schedules from canvas files (dates are read from memos-meta comments)',
   'settings.canvasSchedules.folder': 'Canvas schedules folder',
   'settings.canvasSchedules.folder.desc': 'Folder to scan for .canvas files. Leave empty to scan the whole vault',
+  'settings.canvasSchedules.dotColor': 'Canvas schedule dot color',
+  'settings.canvasSchedules.dotColor.desc': 'Color for canvas schedule dots on the calendar (CSS color, e.g. #3498db, blue)',
   
   // Settings - Advanced
   'settings.advanced': 'Advanced Settings',
@@ -62,8 +62,8 @@ export const en = {
   'settings.banner.dailyNotesDisabled.desc': 'The calendar is best used in conjunction with either the Daily Notes plugin or the Periodic Notes plugin (available in the Community Plugins catalog).',
   
   // Modal - Date Action
-  'modal.dateAction.openDailyNote': 'Open daily note',
-  'modal.dateAction.openMonthlyNote': 'Open monthly note',
+  'modal.dateAction.createDailyNote': 'Create daily note',
+  'modal.dateAction.createMonthlySchedule': 'Create monthly schedule',
   'modal.dateAction.cancel': 'Cancel',
   
   // Modal - Confirmation

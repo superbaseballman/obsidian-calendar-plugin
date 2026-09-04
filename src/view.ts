@@ -368,7 +368,6 @@ export default class CalendarView extends ItemView {
       tryToCreateDailyNote(
         date,
         inNewSplit,
-        this.settings,
         (dailyNote: TFile) => {
           activeFile.setFile(dailyNote);
         }

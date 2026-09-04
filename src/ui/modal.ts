@@ -17,7 +17,7 @@ export interface IDateActionCallbacks {
 
 /**
  * Modal dialog shown when clicking a calendar date.
- * Presents options: open daily note or add item to monthly note.
+ * Presents options: create a daily note or add an item to the monthly note.
  */
 export class DateActionModal extends Modal {
   private date: Moment;
@@ -45,7 +45,7 @@ export class DateActionModal extends Modal {
 
     // Option 1: Open daily note
     const dailyBtn = btnContainer.createEl("button", {
-      text: t('modal.dateAction.openDailyNote'),
+      text: t('modal.dateAction.createDailyNote'),
       cls: "date-action-btn",
     });
     dailyBtn.addEventListener("click", () => {
@@ -55,7 +55,7 @@ export class DateActionModal extends Modal {
 
     // Option 2: Open monthly note for editing
     const addBtn = btnContainer.createEl("button", {
-      text: t('modal.dateAction.openMonthlyNote'),
+      text: t('modal.dateAction.createMonthlySchedule'),
       cls: "date-action-btn",
     });
     addBtn.addEventListener("click", () => {

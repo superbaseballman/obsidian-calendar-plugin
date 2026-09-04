@@ -3,7 +3,6 @@ import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WEEK_FORMAT, DEFAULT_WORDS_PER_DOT } from "src/constants";
-import { DEFAULT_MONTHLY_FORMAT } from "src/io/monthlyNotes";
 import { t } from "./i18n";
 
 import type CalendarPlugin from "./main";
@@ -33,6 +32,7 @@ export interface ISettings {
   // Canvas Schedule settings
   showCanvasSchedules: boolean;
   canvasSchedulesFolder: string;
+  canvasSchedulesDotColor: string;
 
   localeOverride: ILocaleOverride;
 }
@@ -67,6 +67,7 @@ export const defaultSettings = Object.freeze({
 
   showCanvasSchedules: false,
   canvasSchedulesFolder: "",
+  canvasSchedulesDotColor: "#3498db",
 
   localeOverride: "system-default",
 });
@@ -108,7 +109,17 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addClickActionSettings();
     this.addShowWeeklyNoteSetting();
     this.addShowMonthlyNoteSetting();
+
+    if (this.plugin.options.showMonthlyNote) {
+      this.addMonthlyDotColorSetting();
+    }
+
     this.addShowCanvasSchedulesSetting();
+
+    if (this.plugin.options.showCanvasSchedules) {
+      this.addCanvasSchedulesFolderSetting();
+      this.addCanvasSchedulesDotColorSetting();
+    }
 
     if (
       this.plugin.options.showWeeklyNote &&
@@ -124,21 +135,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
       this.addWeeklyNoteFormatSetting();
       this.addWeeklyNoteTemplateSetting();
       this.addWeeklyNoteFolderSetting();
-    }
-
-    if (this.plugin.options.showMonthlyNote) {
-      this.containerEl.createEl("h3", {
-        text: t('settings.monthly'),
-      });
-      this.addMonthlyNoteFormatSetting();
-      this.addMonthlyDotColorSetting();
-    }
-
-    if (this.plugin.options.showCanvasSchedules) {
-      this.containerEl.createEl("h3", {
-        text: t('settings.canvasSchedules'),
-      });
-      this.addCanvasSchedulesFolderSetting();
     }
 
     this.containerEl.createEl("h3", {
@@ -323,19 +319,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
       });
   }
 
-  addMonthlyNoteFormatSetting(): void {
-    new Setting(this.containerEl)
-      .setName(t('settings.monthly.format'))
-      .setDesc(t('settings.monthly.format.desc'))
-      .addText((textfield) => {
-        textfield.setValue(this.plugin.options.monthlyNoteFormat);
-        textfield.setPlaceholder(DEFAULT_MONTHLY_FORMAT);
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ monthlyNoteFormat: value }));
-        });
-      });
-  }
-
   addMonthlyDotColorSetting(): void {
     new Setting(this.containerEl)
       .setName(t('settings.monthly.dotColor'))
@@ -370,6 +353,21 @@ export class CalendarSettingsTab extends PluginSettingTab {
         textfield.setValue(this.plugin.options.canvasSchedulesFolder);
         textfield.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ canvasSchedulesFolder: value }));
+        });
+      });
+  }
+
+  addCanvasSchedulesDotColorSetting(): void {
+    new Setting(this.containerEl)
+      .setName(t('settings.canvasSchedules.dotColor'))
+      .setDesc(t('settings.canvasSchedules.dotColor.desc'))
+      .addText((textfield) => {
+        textfield.setPlaceholder("#3498db");
+        textfield.setValue(this.plugin.options.canvasSchedulesDotColor);
+        textfield.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({
+            canvasSchedulesDotColor: value || "#3498db",
+          }));
         });
       });
   }

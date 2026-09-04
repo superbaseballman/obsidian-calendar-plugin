@@ -22,10 +22,11 @@ async function getDotsForCanvasSchedules(date: Moment): Promise<IDot[]> {
   if (daySchedules.length === 0) {
     return [];
   }
+  const currentSettings = get(settings);
   return [
     {
       className: "canvas-schedule",
-      color: "default",
+      color: currentSettings?.canvasSchedulesDotColor || "#3498db",
       isFilled: false,
     },
   ];

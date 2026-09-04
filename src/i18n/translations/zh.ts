@@ -41,8 +41,6 @@ export const zh: Record<TranslationKey, string> = {
   'settings.monthly': '月记设置',
   'settings.monthly.show': '显示月记',
   'settings.monthly.show.desc': '启用月记支持（格式：YYYY-MM）',
-  'settings.monthly.format': '月记格式',
-  'settings.monthly.format.desc': '月记文件名格式（默认：YYYY-MM）',
   'settings.monthly.dotColor': '月记小点颜色',
   'settings.monthly.dotColor.desc': '日历上月记任务小点的颜色（CSS 颜色值，如 #9b59b6、purple）',
   
@@ -52,6 +50,8 @@ export const zh: Record<TranslationKey, string> = {
   'settings.canvasSchedules.show.desc': '从 canvas 文件导入日程（日期从 memos-meta 注释中读取）',
   'settings.canvasSchedules.folder': 'Canvas 日程文件夹',
   'settings.canvasSchedules.folder.desc': '扫描 .canvas 文件的文件夹。留空则扫描整个库',
+  'settings.canvasSchedules.dotColor': 'Canvas 日程小点颜色',
+  'settings.canvasSchedules.dotColor.desc': '日历上 Canvas 日程小点的颜色（CSS 颜色值，如 #3498db、blue）',
   
   // Settings - Advanced
   'settings.advanced': '高级设置',
@@ -64,8 +64,8 @@ export const zh: Record<TranslationKey, string> = {
   'settings.banner.dailyNotesDisabled.desc': '日历最好与日记插件或周期笔记插件（可在社区插件目录中找到）配合使用。',
   
   // Modal - Date Action
-  'modal.dateAction.openDailyNote': '打开日记',
-  'modal.dateAction.openMonthlyNote': '打开月记',
+  'modal.dateAction.createDailyNote': '创建日记',
+  'modal.dateAction.createMonthlySchedule': '创建月历日程',
   'modal.dateAction.cancel': '取消',
   
   // Modal - Confirmation
