@@ -2,9 +2,13 @@ name: Build plugin
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-      - "*" # Push events to matching any tag format, i.e. 1.0, 20.15.10
+    branches:
+      - master
+    # Only build when the manifest changes (i.e. a version bump)
+    paths:
+      - "manifest.json"
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
 
 env:
   PLUGIN_NAME: calendar
@@ -17,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -24,22 +30,56 @@ jobs:
           node-version: "22.x"
           cache: "npm"
 
+      - name: Resolve normalized tag from manifest
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RAW_VERSION="$(node -p "require('./manifest.json').version")"
+
+          # Normalize into a plain semver tag:
+          #   - strip surrounding whitespace
+          #   - drop a leading "v"/"V" so `v1.2.3` and `1.2.3` yield the same tag
+          TAG="$(printf '%s' "$RAW_VERSION" | tr -d '[:space:]' | sed -E 's/^[vV]//')"
+
+          # Obsidian requires the release tag to match manifest.version exactly,
+          # so validate it is a proper semver (optionally with a prerelease part).
+          if ! printf '%s' "$TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::manifest.json version '$RAW_VERSION' is not a valid semver"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $TAG"
+
+          # Skip the release when the tag already has a published release,
+          # e.g. when a non-version field in manifest.json was edited.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release $TAG already exists; skipping build and release."
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
+        if: steps.meta.outputs.release_exists == 'false'
         id: build
         run: |
           npm ci
           npm run build --if-present
-          mkdir ${{ env.PLUGIN_NAME }}
-          cp main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}
-          zip -r ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}
+          mkdir "${{ env.PLUGIN_NAME }}"
+          cp main.js manifest.json styles.css "${{ env.PLUGIN_NAME }}"
+          zip -r "${{ env.PLUGIN_NAME }}.zip" "${{ env.PLUGIN_NAME }}"
           ls
-          echo "tag_name=$(git tag --sort version:refname | tail -n 1)" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Assets
+        if: steps.meta.outputs.release_exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          name: ${{ github.ref }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
           draft: false
           prerelease: false
           files: |

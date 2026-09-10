@@ -18,7 +18,6 @@ import type { ISettings } from "src/settings";
 import { t } from "./i18n";
 
 import Calendar from "./ui/Calendar.svelte";
-import { showFileMenu } from "./ui/fileMenu";
 import { activeFile, dailyNotes, weeklyNotes, monthlyNotes, canvasSchedules, settings } from "./ui/stores";
 import {
   customTagsSource,
@@ -47,9 +46,6 @@ export default class CalendarView extends ItemView {
 
     this.onHoverDay = this.onHoverDay.bind(this);
     this.onHoverWeek = this.onHoverWeek.bind(this);
-
-    this.onContextMenuDay = this.onContextMenuDay.bind(this);
-    this.onContextMenuWeek = this.onContextMenuWeek.bind(this);
 
     this.registerEvent(
       (this.app.workspace as Record<string, (...args: unknown[]) => unknown>).on(
@@ -112,8 +108,6 @@ export default class CalendarView extends ItemView {
         onClickWeek: this.openOrCreateWeeklyNote,
         onHoverDay: this.onHoverDay,
         onHoverWeek: this.onHoverWeek,
-        onContextMenuDay: this.onContextMenuDay,
-        onContextMenuWeek: this.onContextMenuWeek,
         sources,
       },
     });
@@ -155,30 +149,6 @@ export default class CalendarView extends ItemView {
       date.format(format),
       note?.path
     );
-  }
-
-  private onContextMenuDay(date: Moment, event: MouseEvent): void {
-    const note = getDailyNote(date, get(dailyNotes));
-    if (!note) {
-      // If no file exists for a given day, show nothing.
-      return;
-    }
-    showFileMenu(this.app, note, {
-      x: event.pageX,
-      y: event.pageY,
-    });
-  }
-
-  private onContextMenuWeek(date: Moment, event: MouseEvent): void {
-    const note = getWeeklyNote(date, get(weeklyNotes));
-    if (!note) {
-      // If no file exists for a given day, show nothing.
-      return;
-    }
-    showFileMenu(this.app, note, {
-      x: event.pageX,
-      y: event.pageY,
-    });
   }
 
   private onNoteSettingsUpdate(): void {

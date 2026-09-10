@@ -29,14 +29,6 @@ export const zh: Record<TranslationKey, string> = {
   'settings.weekly.folder': '周记文件夹',
   'settings.weekly.folder.desc': '新的周记将放在此处',
   
-  // Settings - Click Actions
-  'settings.clickAction.daily': '日记',
-  'settings.clickAction.monthly': '月记',
-  'settings.leftClickAction': '左键点击动作',
-  'settings.leftClickAction.desc': '鼠标左键点击日期时执行的操作',
-  'settings.rightClickAction': '右键点击动作',
-  'settings.rightClickAction.desc': '鼠标右键点击日期时执行的操作',
-  
   // Settings - Monthly Notes
   'settings.monthly': '月记设置',
   'settings.monthly.show': '显示月记',
@@ -64,8 +56,10 @@ export const zh: Record<TranslationKey, string> = {
   'settings.banner.dailyNotesDisabled.desc': '日历最好与日记插件或周期笔记插件（可在社区插件目录中找到）配合使用。',
   
   // Modal - Date Action
+  'modal.dateAction.openDailyNote': '打开日记',
+  'modal.dateAction.openMonthlyNote': '打开月记',
   'modal.dateAction.createDailyNote': '创建日记',
-  'modal.dateAction.createMonthlySchedule': '创建月历日程',
+  'modal.dateAction.createMonthlyNote': '创建月记',
   'modal.dateAction.cancel': '取消',
   
   // Modal - Confirmation
@@ -81,10 +75,4 @@ export const zh: Record<TranslationKey, string> = {
   'error.monthlyNotesFolder': '[Calendar] 找不到月记文件夹',
   'error.readMonthlyNote': '[Calendar] 读取月记失败',
   'error.canvasSchedules': '[Calendar] 读取 Canvas 日程失败',
-  
-  // File Menu
-  'fileMenu.open': '打开',
-  'fileMenu.openInNewTab': '在新标签页打开',
-  'fileMenu.rename': '重命名',
-  'fileMenu.delete': '删除',
 };

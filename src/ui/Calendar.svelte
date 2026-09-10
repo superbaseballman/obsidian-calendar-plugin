@@ -46,8 +46,6 @@
   export let onHoverWeek: (date: Moment, targetEl: EventTarget) => boolean;
   export let onClickDay: (date: Moment, isMetaPressed: boolean) => boolean;
   export let onClickWeek: (date: Moment, isMetaPressed: boolean) => boolean;
-  export let onContextMenuDay: (date: Moment, event: MouseEvent) => boolean;
-  export let onContextMenuWeek: (date: Moment, event: MouseEvent) => boolean;
 
   // --- Monthly tasks state ---
   let monthFile: TFile | null = null;
@@ -145,41 +143,70 @@
   }
 
   function handleDayClick(date: Moment, isMetaPressed: boolean): boolean {
+    // Without monthly notes enabled, keep the original single-action behavior.
     if (!currentSettings?.showMonthlyNote) {
       return onClickDay(date, isMetaPressed);
     }
 
-    if (!getDailyNote(date, $dailyNotes)) {
+    // Reading the monthly note is async, so resolve the action on demand.
+    void resolveDayAction(date, isMetaPressed);
+    return false;
+  }
+
+  /**
+   * Decide what a left click should do for the given day:
+   * - daily + monthly content both exist -> ask which to open
+   * - only daily note exists -> open daily note
+   * - only monthly content exists -> open monthly note section
+   * - neither exists -> ask which to create
+   */
+  async function resolveDayAction(date: Moment, isMetaPressed: boolean) {
+    const hasDaily = !!getDailyNote(date, $dailyNotes);
+    const hasMonthly = await hasMonthlyDayContent(date);
+
+    if (hasDaily && hasMonthly) {
       new DateActionModal(window.app, date, {
+        mode: "choose",
         onOpenDailyNote: (selectedDate) => onClickDay(selectedDate, isMetaPressed),
         onAddItem: openMonthlyNoteForEdit,
       }).open();
-      return false;
+      return;
     }
 
-    const action = currentSettings.leftClickAction || "daily";
-    if (action === "monthly") {
-      openMonthlyNoteForEdit(date);
-      return false;
+    if (hasDaily) {
+      onClickDay(date, isMetaPressed);
+      return;
     }
-    // Default: open daily note
-    return onClickDay(date, isMetaPressed);
+
+    if (hasMonthly) {
+      await openMonthlyNoteForEdit(date);
+      return;
+    }
+
+    new DateActionModal(window.app, date, {
+      mode: "create",
+      onOpenDailyNote: (selectedDate) => onClickDay(selectedDate, isMetaPressed),
+      onAddItem: openMonthlyNoteForEdit,
+    }).open();
   }
 
-  function handleDayRightClick(date: Moment, event: MouseEvent): boolean {
-    if (!currentSettings?.showMonthlyNote) {
-      return onContextMenuDay(date, event);
-    }
-
-    event.preventDefault();
-    const action = currentSettings.rightClickAction || "monthly";
-    if (action === "monthly") {
-      openMonthlyNoteForEdit(date);
+  /**
+   * Whether the monthly note for the given date exists and contains a
+   * non-empty `## DD` section for that specific day.
+   */
+  async function hasMonthlyDayContent(date: Moment): Promise<boolean> {
+    const file = getMonthlyNote(date, $monthlyNotes);
+    if (!file) {
       return false;
     }
-    // Default: open daily note
-    onClickDay(date, false);
-    return false;
+    try {
+      const content = await window.app.vault.cachedRead(file);
+      const sections = parseMonthlyNoteSections(content, date.format("YYYY-MM"));
+      return !!sections[date.format("DD")]?.trim();
+    } catch (err) {
+      console.log(t('error.readMonthlyNote'), err);
+      return false;
+    }
   }
 
   async function openMonthlyNoteForEdit(date: Moment) {
@@ -548,8 +575,6 @@
     {today}
     {onHoverDay}
     {onHoverWeek}
-    onContextMenuDay={currentSettings?.showMonthlyNote ? handleDayRightClick : onContextMenuDay}
-    {onContextMenuWeek}
     onClickDay={currentSettings?.showMonthlyNote ? handleDayClick : onClickDay}
     {onClickWeek}
     bind:displayedMonth

@@ -7,16 +7,10 @@ import { t } from "./i18n";
 
 import type CalendarPlugin from "./main";
 
-export type ClickAction = "daily" | "monthly";
-
 export interface ISettings {
   wordsPerDot: number;
   weekStart: IWeekStartOption;
   shouldConfirmBeforeCreate: boolean;
-
-  // Click behavior
-  leftClickAction: ClickAction;
-  rightClickAction: ClickAction;
 
   // Weekly Note settings
   showWeeklyNote: boolean;
@@ -52,9 +46,6 @@ export const defaultSettings = Object.freeze({
   weekStart: "locale" as IWeekStartOption,
 
   wordsPerDot: DEFAULT_WORDS_PER_DOT,
-
-  leftClickAction: "daily" as ClickAction,
-  rightClickAction: "monthly" as ClickAction,
 
   showWeeklyNote: false,
   weeklyNoteFormat: "",
@@ -106,7 +97,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addDotThresholdSetting();
     this.addWeekStartSetting();
     this.addConfirmCreateSetting();
-    this.addClickActionSettings();
     this.addShowWeeklyNoteSetting();
     this.addShowMonthlyNoteSetting();
 
@@ -264,43 +254,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.writeOptions(() => ({
             localeOverride: value as ILocaleOverride,
-          }));
-        });
-      });
-  }
-
-  addClickActionSettings(): void {
-    const options: Record<string, string> = {
-      "daily": t('settings.clickAction.daily'),
-      "monthly": t('settings.clickAction.monthly'),
-    };
-
-    new Setting(this.containerEl)
-      .setName(t('settings.leftClickAction'))
-      .setDesc(t('settings.leftClickAction.desc'))
-      .addDropdown((dropdown) => {
-        Object.entries(options).forEach(([value, label]) => {
-          dropdown.addOption(value, label);
-        });
-        dropdown.setValue(this.plugin.options.leftClickAction);
-        dropdown.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
-            leftClickAction: value as ClickAction,
-          }));
-        });
-      });
-
-    new Setting(this.containerEl)
-      .setName(t('settings.rightClickAction'))
-      .setDesc(t('settings.rightClickAction.desc'))
-      .addDropdown((dropdown) => {
-        Object.entries(options).forEach(([value, label]) => {
-          dropdown.addOption(value, label);
-        });
-        dropdown.setValue(this.plugin.options.rightClickAction);
-        dropdown.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
-            rightClickAction: value as ClickAction,
           }));
         });
       });

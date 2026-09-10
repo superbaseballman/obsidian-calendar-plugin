@@ -27,14 +27,6 @@ export const en = {
   'settings.weekly.folder': 'Weekly note folder',
   'settings.weekly.folder.desc': 'New weekly notes will be placed here',
   
-  // Settings - Click Actions
-  'settings.clickAction.daily': 'Daily note',
-  'settings.clickAction.monthly': 'Monthly note',
-  'settings.leftClickAction': 'Left click action',
-  'settings.leftClickAction.desc': 'Action to perform when left-clicking a date',
-  'settings.rightClickAction': 'Right click action',
-  'settings.rightClickAction.desc': 'Action to perform when right-clicking a date',
-  
   // Settings - Monthly Notes
   'settings.monthly': 'Monthly Note Settings',
   'settings.monthly.show': 'Show monthly notes',
@@ -62,8 +54,10 @@ export const en = {
   'settings.banner.dailyNotesDisabled.desc': 'The calendar is best used in conjunction with either the Daily Notes plugin or the Periodic Notes plugin (available in the Community Plugins catalog).',
   
   // Modal - Date Action
+  'modal.dateAction.openDailyNote': 'Open daily note',
+  'modal.dateAction.openMonthlyNote': 'Open monthly note',
   'modal.dateAction.createDailyNote': 'Create daily note',
-  'modal.dateAction.createMonthlySchedule': 'Create monthly schedule',
+  'modal.dateAction.createMonthlyNote': 'Create monthly note',
   'modal.dateAction.cancel': 'Cancel',
   
   // Modal - Confirmation
@@ -79,12 +73,6 @@ export const en = {
   'error.monthlyNotesFolder': '[Calendar] Failed to find monthly notes folder',
   'error.readMonthlyNote': '[Calendar] Failed to read monthly note',
   'error.canvasSchedules': '[Calendar] Failed to read canvas schedules',
-  
-  // File Menu
-  'fileMenu.open': 'Open',
-  'fileMenu.openInNewTab': 'Open in new tab',
-  'fileMenu.rename': 'Rename',
-  'fileMenu.delete': 'Delete',
 };
 
 export type TranslationKey = keyof typeof en;
